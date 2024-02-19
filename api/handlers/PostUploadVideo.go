@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/andrewdotjs/watchify-server/types"
@@ -38,7 +39,7 @@ func UploadVideoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get the file from the request
-	file, _, err := r.FormFile("video")
+	file, handler, err := r.FormFile("video")
 	if err != nil {
 		response, _ := json.Marshal(types.Message{
 			StatusCode: http.StatusBadRequest,
@@ -54,6 +55,8 @@ func UploadVideoHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Create a unique ID
 	fileIdentifier := fmt.Sprint(uuid.New())
+	splitFileName := strings.Split(handler.Filename, ".")
+	fileName := fmt.Sprintf("%s.%s", fileIdentifier, splitFileName[1])
 
 	// Create the upload directory if it doesn't exist
 	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
@@ -62,7 +65,7 @@ func UploadVideoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create the file in the upload directory
-	uploadPath := filepath.Join(uploadDir, fmt.Sprintf("%s.mp4", fileIdentifier))
+	uploadPath := filepath.Join(uploadDir, fileName)
 	out, err := os.Create(uploadPath)
 
 	if err != nil {
