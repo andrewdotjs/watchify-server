@@ -28,10 +28,11 @@ func main() {
 	// Ensure that the needed tables are ready
 	statement, err := database.Prepare(`
     CREATE TABLE IF NOT EXISTS videos (
-      id VARCHAR(50) PRIMARY KEY,
-      series_id VARCHAR(50),
+      id TEXT PRIMARY KEY,
+      series_id TEXT,
       episode_number INTEGER,
-      title VARCHAR(50)
+      title TEXT,
+			upload_date TEXT NOT NULL 
     );
   `)
 
@@ -44,6 +45,8 @@ func main() {
 
 	router := mux.NewRouter()
 	router.HandleFunc("/api/v1/info", handlers.GetInfoHandler).Methods("GET")
+	router.HandleFunc("/api/v1/stream", handlers.StreamHandler).Methods("GET")
+	router.HandleFunc("/api/v1/upload/video", handlers.UploadVideoHandler).Methods("POST")
 	router.Use(middleware.EndpointLogger)
 
 	server := &http.Server{
