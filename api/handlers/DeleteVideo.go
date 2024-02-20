@@ -2,25 +2,28 @@ package handlers
 
 import (
 	"database/sql"
-	"encoding/json"
 	"log"
 	"net/http"
 	"os"
 	"path"
 
-	"github.com/andrewdotjs/watchify-server/types"
-	"github.com/andrewdotjs/watchify-server/utilities"
+	"github.com/andrewdotjs/watchify-server/api/responses"
 )
 
+// Method: DELETE
 func DeleteVideoHandler(w http.ResponseWriter, r *http.Request) {
 	var videoIdentifer string = r.URL.Query().Get("v")
 	var fileName string
+
 	w.Header().Set("Content-Type", "application/json")
 
 	if videoIdentifer == "" {
-		response := utilities.ErrorMessage(http.StatusBadRequest, "v query param was not passed in.")
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write(response)
+		w.WriteHeader(400)
+		w.Write(responses.Error{
+			StatusCode: 400,
+			ErrorCode:  "3",
+			Message:    "v query param was not passed in.",
+		}.ToJSON())
 		return
 	}
 
@@ -35,40 +38,38 @@ func DeleteVideoHandler(w http.ResponseWriter, r *http.Request) {
 	err = database.QueryRow(`SELECT file_name FROM videos WHERE id=?`, videoIdentifer).Scan(&fileName)
 
 	if err != nil {
-		response := utilities.ErrorMessage(http.StatusBadRequest, "Unable to find video identifier from v. Does that ID exist?")
-		log.Printf("ERR : %v", err)
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write(response)
+		w.WriteHeader(400)
+		w.Write(responses.Error{
+			StatusCode: 400,
+			ErrorCode:  "20",
+			Message:    "Unable to find video identifier from v.",
+		}.ToJSON())
 		return
 	}
 
 	err = os.Remove(path.Join("./storage/videos", fileName))
 
 	if err != nil {
-		response := utilities.ErrorMessage(http.StatusBadRequest, "Unable to delete video from storage. Does that ID exist?")
-		log.Printf("ERR : %v", err)
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write(response)
+		w.WriteHeader(400)
+		w.Write(responses.Error{
+			StatusCode: 400,
+			ErrorCode:  "310",
+			Message:    "Could not delete video from storage",
+		}.ToJSON())
 		return
 	}
 
 	if _, err = database.Exec(`DELETE FROM videos WHERE id=?`, videoIdentifer); err != nil {
-		response := utilities.ErrorMessage(http.StatusBadRequest, "Unable to delete video from database. Does that ID exist?")
-		log.Printf("ERR : %v", err)
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write(response)
+		w.WriteHeader(400)
+		w.Write(responses.Error{
+			StatusCode: 400,
+			Message:    "Could not delete video information from database.",
+		}.ToJSON())
 		return
 	}
 
-	response, err := json.Marshal(types.Message{
-		StatusCode: http.StatusOK,
-		Message:    "Video was successfully deleted from both storage and database.",
-	})
-
-	if err != nil {
-		log.Fatalf("ERR : %v", err)
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(response)
+	w.WriteHeader(200)
+	w.Write(responses.Status{
+		StatusCode: 200,
+	}.ToJSON())
 }

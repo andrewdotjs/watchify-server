@@ -1,9 +1,9 @@
 package utilities
 
-func Minimum(number1 int, number2 int) int {
-	if number1 > number2 {
-		return number2
+func Minimum(num1 int, num2 int) int {
+	if num1 < num2 {
+		return num1
 	}
 
-	return number1
+	return num2
 }

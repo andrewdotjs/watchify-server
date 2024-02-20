@@ -2,13 +2,12 @@ package handlers
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 
+	"github.com/andrewdotjs/watchify-server/api/responses"
 	"github.com/andrewdotjs/watchify-server/types"
-	"github.com/andrewdotjs/watchify-server/utilities"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -18,10 +17,14 @@ func GetInfoHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
+	// Check if parameters exceed maximum
 	if len(r.URL.Query()) > 1 {
-		response := utilities.ErrorMessage(http.StatusOK, "You cannot have more than 1 query param at this time.")
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write(response)
+		w.Write(responses.Error{
+			StatusCode: 200,
+			ErrorCode:  "1",
+			Message:    "Too many query params. Maximum is 1.",
+		}.ToJSON())
 		return
 	}
 
@@ -33,8 +36,8 @@ func GetInfoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if videoIdentifier == "" {
-		rows, err := database.Query(`SELECT * FROM videos`)
-		videos := types.Videos{}
+		rows, err := database.Query(`SELECT * FROM videos;`)
+		var videoArray []types.Video
 
 		if err != nil {
 			if err != sql.ErrNoRows {
@@ -50,39 +53,45 @@ func GetInfoHandler(w http.ResponseWriter, r *http.Request) {
 			if err := rows.Scan(&video.Id, &video.SeriesId, &video.Episode, &video.Title, &video.FileName, &video.UploadDate); err != nil {
 				log.Fatalf("ERR : %v", err)
 			}
-			videos.VideoArray = append(videos.VideoArray, video)
+			videoArray = append(videoArray, video)
 		}
 
-		response, _ := json.Marshal(videos)
-
 		w.WriteHeader(http.StatusOK)
-		w.Write(response)
+		w.Write(responses.Videos{
+			StatusCode: 200,
+			Data:       videoArray,
+		}.ToJSON())
 		return
 	}
 
-	err = database.QueryRow("SELECT * FROM videos WHERE id = ?", videoIdentifier).Scan(&video.Id, &video.SeriesId, &video.Episode, &video.Title, &video.FileName, &video.UploadDate)
+	err = database.QueryRow("SELECT * FROM videos WHERE id = ?;", videoIdentifier).Scan(&video.Id, &video.SeriesId, &video.Episode, &video.Title, &video.FileName, &video.UploadDate)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			response := utilities.ErrorMessage(http.StatusOK, fmt.Sprintf("Could not find video where v=%s", videoIdentifier))
-
-			w.WriteHeader(http.StatusNotFound)
-			w.Write(response)
+			w.WriteHeader(400)
+			w.Write(responses.Error{
+				StatusCode: 400,
+				ErrorCode:  "40",
+				Message:    fmt.Sprintf("No video matched the id %v.", videoIdentifier),
+			}.ToJSON())
 			return
 		}
 
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("CATASTROPHIC SERVER FAILURE"))
+		w.Write(responses.Error{
+			StatusCode: 500,
+			ErrorCode:  "40",
+			Message:    "Catastrophic server failure has occurred.",
+		}.ToJSON())
 		defer database.Close()
 		log.Fatalf("ERR : %v", err)
 	}
 
-	response, _ := json.Marshal(types.Message{
-		StatusCode: http.StatusOK,
-		Video:      video,
-	})
+	defer database.Close()
 
 	w.WriteHeader(http.StatusOK)
-	w.Write(response)
-	defer database.Close()
+	w.Write(responses.Video{
+		StatusCode: 200,
+		Data:       video,
+	}.ToJSON())
 }
