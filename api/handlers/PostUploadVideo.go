@@ -9,29 +9,28 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/andrewdotjs/watchify-server/types"
+	"github.com/andrewdotjs/watchify-server/utilities"
 	"github.com/google/uuid"
 )
 
 func UploadVideoHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
+	var uploadDirectory string = "./storage/videos"
+	var videoIdentifier string
+	var seriesIdentifier string
+	var episodeNumber int = 0
+	var videoTitle string
+	var fileName string
+	var uploadDate string
 
-	uploadDir := "./storage/videos"
-
-	err := r.ParseMultipartForm(1 << 30) // 1 GB limit
-	if err != nil {
-		response, _ := json.Marshal(types.Message{
-			StatusCode: http.StatusBadRequest,
-			Message:    "Could not parse form data. Is it beyond 1GB file limit? Is encoding set to multipart/form-data?",
-		})
-
+	// Error handling if form data exceeds 1GB
+	if err := r.ParseMultipartForm(1 << 30); err != nil {
+		response := utilities.ErrorMessage(http.StatusBadRequest, "Did the file exceed 1GB?")
 		log.Printf("ERR : %v", err)
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write(response)
@@ -40,11 +39,10 @@ func UploadVideoHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Get the file from the request
 	file, handler, err := r.FormFile("video")
+
+	// Error handling if form data exceeds 1GB
 	if err != nil {
-		response, _ := json.Marshal(types.Message{
-			StatusCode: http.StatusBadRequest,
-			Message:    "Unable to get file from form. Was fileName set to video?",
-		})
+		response := utilities.ErrorMessage(http.StatusBadRequest, "Unable to get file from form. Was fileName set to video?")
 		log.Printf("ERR : %v", err)
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write(response)
@@ -53,26 +51,32 @@ func UploadVideoHandler(w http.ResponseWriter, r *http.Request) {
 
 	defer file.Close()
 
+	seriesIdentifier = r.FormValue("series-identifier")
+	videoTitle = r.FormValue("title")
+	episodeNumber, err = strconv.Atoi(r.FormValue("episode-number"))
+
+	if err != nil {
+		log.Printf("ERR : %v. setting episode number to 0", err)
+		episodeNumber = 0
+	}
+
 	// Create a unique ID
-	fileIdentifier := fmt.Sprint(uuid.New())
-	splitFileName := strings.Split(handler.Filename, ".")
-	fileName := fmt.Sprintf("%s.%s", fileIdentifier, splitFileName[1])
+	videoIdentifier = fmt.Sprint(uuid.New())
+	fileName = fmt.Sprintf("%s.%s", videoIdentifier, strings.Split(handler.Filename, ".")[1])
 
 	// Create the upload directory if it doesn't exist
-	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
-		log.Printf("SYS : Could not find upload directory '%s'. Creating one.", uploadDir)
-		os.Mkdir(uploadDir, os.ModePerm)
+	if _, err := os.Stat(uploadDirectory); os.IsNotExist(err) {
+		log.Printf("SYS : Could not find upload directory at '%s'. Creating one.", uploadDirectory)
+		os.Mkdir(uploadDirectory, os.ModePerm)
 	}
 
 	// Create the file in the upload directory
-	uploadPath := filepath.Join(uploadDir, fileName)
+	uploadPath := filepath.Join(uploadDirectory, fileName)
 	out, err := os.Create(uploadPath)
 
+	// Error handling if the file cannot be created
 	if err != nil {
-		response, _ := json.Marshal(types.Message{
-			StatusCode: http.StatusInternalServerError,
-			Message:    "Unable to create file",
-		})
+		response := utilities.ErrorMessage(http.StatusBadRequest, "Unable to create file.")
 		log.Printf("ERR : %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write(response)
@@ -81,14 +85,9 @@ func UploadVideoHandler(w http.ResponseWriter, r *http.Request) {
 
 	defer out.Close()
 
-	// Copy the file to the destination
-
-	_, err = io.Copy(out, file)
-	if err != nil {
-		response, _ := json.Marshal(types.Message{
-			StatusCode: http.StatusInternalServerError,
-			Message:    "Unable to copy file",
-		})
+	// Copy the file to the destination and error handle.
+	if _, err := io.Copy(out, file); err != nil {
+		response := utilities.ErrorMessage(http.StatusBadRequest, "Unable to copy file.")
 		log.Printf("ERR : %v", err)
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write(response)
@@ -103,14 +102,10 @@ func UploadVideoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer database.Close()
-	uploadDate := time.Now().Format("2006-01-02 15:04:05")
-	_, err = database.Exec(`INSERT INTO videos VALUES (?, ?, ?, ?, ?)`, fileIdentifier, "", 0, "Test Title", uploadDate)
+	uploadDate = time.Now().Format("2006-01-02 15:04:05")
 
-	if err != nil {
-		response, _ := json.Marshal(types.Message{
-			StatusCode: http.StatusInternalServerError,
-			Message:    "Unable to insert data into database",
-		})
+	if _, err = database.Exec(`INSERT INTO videos VALUES (?, ?, ?, ?, ?, ?)`, videoIdentifier, seriesIdentifier, episodeNumber, videoTitle, fileName, uploadDate); err != nil {
+		response := utilities.ErrorMessage(http.StatusBadRequest, "Unable to insert data into the database.")
 		log.Printf("ERR : %v", err)
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write(response)
@@ -119,9 +114,13 @@ func UploadVideoHandler(w http.ResponseWriter, r *http.Request) {
 
 	response, _ := json.Marshal(types.Message{
 		StatusCode: http.StatusOK,
-		Message:    "File uploaded successfully and data inserted into the database.",
+		Message:    "File uploaded successfully and data sent to database.",
 		Video: types.Video{
-			Id:         fileIdentifier,
+			Id:         videoIdentifier,
+			SeriesId:   seriesIdentifier,
+			Episode:    episodeNumber,
+			Title:      videoTitle,
+			FileName:   fileName,
 			UploadDate: uploadDate,
 		},
 	})

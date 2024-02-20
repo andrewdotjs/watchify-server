@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -32,6 +33,7 @@ func main() {
       series_id TEXT,
       episode_number INTEGER,
       title TEXT,
+			file_name TEXT NOT NULL,
 			upload_date TEXT NOT NULL 
     );
   `)
@@ -44,9 +46,14 @@ func main() {
 	defer database.Close()
 
 	router := mux.NewRouter()
-	router.HandleFunc("/api/v1/info", handlers.GetInfoHandler).Methods("GET")
-	router.HandleFunc("/api/v1/stream", handlers.StreamHandler).Methods("GET")
-	router.HandleFunc("/api/v1/upload/video", handlers.UploadVideoHandler).Methods("POST")
+
+	// Video collection
+	router.HandleFunc("/api/v1/video/info", handlers.GetInfoHandler).Methods("GET")
+	router.HandleFunc("/api/v1/video/stream", handlers.StreamHandler).Methods("GET")
+	router.HandleFunc("/api/v1/video/upload", handlers.UploadVideoHandler).Methods("POST")
+	router.HandleFunc("/api/v1/video/delete", handlers.DeleteVideoHandler).Methods("DELETE")
+
+	// Series collection
 	router.Use(middleware.EndpointLogger)
 
 	server := &http.Server{
@@ -59,8 +66,12 @@ func main() {
 
 	// Run in goroutine to not interrupt graceful shutdown procedure.
 	go func() {
-		if err := server.ListenAndServe(); err != nil {
-			log.Println(err)
+		if err := server.ListenAndServe(); err == http.ErrServerClosed {
+			fmt.Println("")
+			log.Println("SYS : Recieved shutdown signal, starting shutdown procedure.")
+		} else if err != nil {
+			fmt.Println("")
+			log.Printf("ERR : %v", err)
 		}
 	}()
 
