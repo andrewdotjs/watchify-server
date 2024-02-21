@@ -27,7 +27,6 @@ func UploadVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB
 		w.WriteHeader(400)
 		w.Write(responses.Error{
 			StatusCode: 400,
-			ErrorCode:  "40013",
 			Message:    "Did the file exceed 1GB?",
 		}.ToJSON())
 		return
@@ -35,72 +34,61 @@ func UploadVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB
 
 	// Get the file from the request
 	file, handler, err := r.FormFile("video")
-
-	// Error handling if form data exceeds 1GB
 	if err != nil {
 		w.WriteHeader(400)
 		w.Write(responses.Error{
 			StatusCode: 400,
-			ErrorCode:  "4001341",
 			Message:    "Unable to get file from form. Was fileName set to video?",
 		}.ToJSON())
 		return
+	} else {
+		defer file.Close()
 	}
-
-	defer file.Close()
 
 	video.SeriesId = r.FormValue("series-identifier")
 	video.Title = r.FormValue("title")
 	video.Episode, err = strconv.Atoi(r.FormValue("episode-number"))
-
 	if err != nil {
 		log.Printf("ERR : %v. setting episode number to 0", err)
 		video.Episode = 0
 	}
 
-	// Create a unique ID
 	video.Id = fmt.Sprint(uuid.New())
 	video.FileName = fmt.Sprintf("%s.%s", video.Id, strings.Split(handler.Filename, ".")[1])
+	video.UploadDate = time.Now().Format("2006-01-02 15:04:05")
 
-	// Create the upload directory if it doesn't exist
 	if _, err := os.Stat(uploadDirectory); os.IsNotExist(err) {
 		log.Printf("SYS : Could not find upload directory at '%s'. Creating one.", uploadDirectory)
 		os.Mkdir(uploadDirectory, os.ModePerm)
 	}
 
-	// Create the file in the upload directory
 	uploadPath := filepath.Join(uploadDirectory, video.FileName)
 	out, err := os.Create(uploadPath)
-
-	// Error handling if the file cannot be created
 	if err != nil {
 		w.WriteHeader(500)
 		w.Write(responses.Error{
 			StatusCode: 500,
-			ErrorCode:  "5032",
 			Message:    "Unable to create file.",
 		}.ToJSON())
 		return
+	} else {
+		defer out.Close()
 	}
-
-	defer out.Close()
 
 	// Copy the file to the destination and error handle.
 	if _, err := io.Copy(out, file); err != nil {
 		w.WriteHeader(500)
 		w.Write(responses.Error{
 			StatusCode: 500,
-			ErrorCode:  "500",
 			Message:    "Unable to copy file.",
 		}.ToJSON())
 		return
 	}
 
-	video.UploadDate = time.Now().Format("2006-01-02 15:04:05")
-
 	if _, err = database.Exec(
 		`INSERT INTO videos VALUES (?, ?, ?, ?, ?, ?)`,
-		video.Id, video.SeriesId,
+		video.Id,
+		video.SeriesId,
 		video.Episode,
 		video.Title,
 		video.FileName,
@@ -109,7 +97,6 @@ func UploadVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB
 		w.WriteHeader(400)
 		w.Write(responses.Error{
 			StatusCode: 400,
-			ErrorCode:  "40203",
 			Message:    "Unable to insert data into the database.",
 		}.ToJSON())
 		return

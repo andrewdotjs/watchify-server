@@ -8,21 +8,22 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/andrewdotjs/watchify-server/utilities"
+	"github.com/andrewdotjs/watchify-server/api/utilities"
 )
 
 func StreamHandler(w http.ResponseWriter, r *http.Request) {
 	videoIdentifier := r.URL.Query().Get("v")
+	w.Header().Set("Content-Type", "video/mp4")
 
 	if videoIdentifier == "" {
-		http.Error(w, "No video identifier passed in. Please use v={id}.", http.StatusInternalServerError)
+		http.Error(w, "No video identifier passed in. Please use v={id}.", 500)
 		return
 	}
 
 	var videoFilePath string = fmt.Sprintf("./storage/videos/%v.mp4", videoIdentifier)
 	videoFile, err := os.Open(videoFilePath)
 	if err != nil {
-		http.Error(w, "Error opening video file", http.StatusInternalServerError)
+		http.Error(w, "Error opening video file", 500)
 		return
 	}
 	defer videoFile.Close()
@@ -30,12 +31,9 @@ func StreamHandler(w http.ResponseWriter, r *http.Request) {
 	// Get file information
 	fileInfo, err := videoFile.Stat()
 	if err != nil {
-		http.Error(w, "Error getting file information", http.StatusInternalServerError)
+		http.Error(w, "Error getting file information", 500)
 		return
 	}
-
-	// Set the Content-Type header to the appropriate video MIME type
-	w.Header().Set("Content-Type", "video/mp4")
 
 	// Get total file size
 	fileSize := fileInfo.Size()
@@ -50,7 +48,7 @@ func StreamHandler(w http.ResponseWriter, r *http.Request) {
 		// Set the appropriate headers for partial content
 		w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, utilities.Minimum((int(start)+int(CHUNK_SIZE)), (int(fileSize)-1)), fileSize))
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", fileSize-start))
-		// w.WriteHeader(http.StatusPartialContent)
+		w.WriteHeader(http.StatusPartialContent)
 
 		// Seek to the specified position and stream the partial content
 		videoFile.Seek(start, 0)

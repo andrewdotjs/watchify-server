@@ -12,7 +12,7 @@ import (
 
 	"github.com/andrewdotjs/watchify-server/api/handlers"
 	"github.com/andrewdotjs/watchify-server/api/middleware"
-	"github.com/andrewdotjs/watchify-server/utilities"
+	"github.com/andrewdotjs/watchify-server/api/utilities"
 
 	"github.com/gorilla/mux"
 	_ "github.com/mattn/go-sqlite3"

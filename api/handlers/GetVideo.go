@@ -20,24 +20,27 @@ func GetVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if videoIdentifier == "" {
-		var queryLimit int = 20
+		var queryLimit int
+		var videoArray []types.Video
 
 		if r.URL.Query().Get("limit") != "" {
 			queryLimit, _ = strconv.Atoi(r.URL.Query().Get("limit"))
 		}
 
-		switch {
-		case queryLimit < 1:
-			queryLimit = 1
-		case queryLimit > 20:
+		if (queryLimit < 1) || (queryLimit > 20) {
 			queryLimit = 20
 		}
 
-		var videoArray []types.Video
-
 		rows, err := database.Query(fmt.Sprintf(`SELECT * FROM videos LIMIT %v;`, queryLimit))
 		if err != nil {
-			if err != sql.ErrNoRows {
+			if errors.Is(err, sql.ErrNoRows) {
+				w.WriteHeader(200)
+				w.Write(responses.Videos{
+					StatusCode: 200,
+					Data:       videoArray,
+				}.ToJSON())
+				return
+			} else {
 				log.Fatalf("ERR : %v", err)
 			}
 		}
@@ -61,7 +64,7 @@ func GetVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 			videoArray = append(videoArray, video)
 		}
 
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(200)
 		w.Write(responses.Videos{
 			StatusCode: 200,
 			Data:       videoArray,
@@ -86,23 +89,16 @@ func GetVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 			w.WriteHeader(400)
 			w.Write(responses.Error{
 				StatusCode: 400,
-				ErrorCode:  "40",
 				Message:    fmt.Sprintf("No video matched the id %v.", videoIdentifier),
 			}.ToJSON())
 			return
 		}
 
 		defer database.Close()
-		w.WriteHeader(500)
-		w.Write(responses.Error{
-			StatusCode: 500,
-			ErrorCode:  "40",
-			Message:    "Catastrophic server failure has occurred.",
-		}.ToJSON())
 		log.Fatalf("ERR : %v", err)
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(200)
 	w.Write(responses.Video{
 		StatusCode: 200,
 		Data:       video,

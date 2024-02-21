@@ -19,20 +19,18 @@ func GetCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if coverIdentifier == "" {
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(400)
 		w.Write(responses.Error{
-			StatusCode: 200,
-			ErrorCode:  "1",
+			StatusCode: 400,
 			Message:    "c query param not passed in.",
 		}.ToJSON())
 		return
 	}
 
 	if err := database.QueryRow("SELECT file_name FROM covers WHERE id=?;", coverIdentifier).Scan(&coverFileName); err != nil {
-		if !errors.Is(err, sql.ErrNoRows) {
-			defer database.Close()
-			log.Fatalf("ERR : %v", err)
-		}
+		defer database.Close()
+		log.Fatalf("ERR : %v", err)
+		// if !errors.Is(err, sql.ErrNoRows) {}
 	}
 
 	buffer, err := os.ReadFile(path.Join(uploadDirectory, coverFileName))

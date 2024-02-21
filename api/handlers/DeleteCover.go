@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"database/sql"
+	"errors"
+	"log"
 	"net/http"
 	"os"
 	"path"
@@ -19,36 +21,38 @@ func DeleteCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB
 		w.WriteHeader(400)
 		w.Write(responses.Error{
 			StatusCode: 400,
-			ErrorCode:  "3",
 			Message:    "c query param was not passed in.",
 		}.ToJSON())
 		return
 	}
 
-	err := database.QueryRow(`SELECT file_name FROM covers WHERE id=?`, coverIdentifer).Scan(&fileName)
-	if err != nil {
-		w.WriteHeader(400)
-		w.Write(responses.Error{
-			StatusCode: 400,
-			ErrorCode:  "20",
-			Message:    "Unable to find cover identifier from c.",
-		}.ToJSON())
-		return
+	if err := database.QueryRow(`SELECT file_name FROM covers WHERE id=?`, coverIdentifer).Scan(&fileName); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			w.WriteHeader(400)
+			w.Write(responses.Error{
+				StatusCode: 400,
+				Message:    "Unable to find cover identifier from c.",
+			}.ToJSON())
+			return
+		} else {
+			log.Fatalf("ERR : %v", err)
+		}
 	}
 
-	err = os.Remove(path.Join("./storage/covers", fileName))
-
-	if err != nil {
-		w.WriteHeader(400)
-		w.Write(responses.Error{
-			StatusCode: 400,
-			ErrorCode:  "310",
-			Message:    "Could not delete cover from storage",
-		}.ToJSON())
-		return
+	if err := os.Remove(path.Join("./storage/covers", fileName)); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			w.WriteHeader(400)
+			w.Write(responses.Error{
+				StatusCode: 400,
+				Message:    "Could not delete cover from storage",
+			}.ToJSON())
+			return
+		} else {
+			log.Fatalf("ERR : %v", err)
+		}
 	}
 
-	if _, err = database.Exec(`DELETE FROM videos WHERE id=?`, coverIdentifer); err != nil {
+	if _, err := database.Exec(`DELETE FROM videos WHERE id=?`, coverIdentifer); err != nil {
 		w.WriteHeader(400)
 		w.Write(responses.Error{
 			StatusCode: 400,

@@ -7,13 +7,15 @@ import (
 
 func InitializeDatabase() *sql.DB {
 	database, err := sql.Open("sqlite3", "./db/videos.db")
-
 	if err != nil {
 		log.Fatalf("ERR : %v", err)
 	}
 
-	// Ensure that the needed tables are ready
-	statement1, err1 := database.Prepare(`
+	if err := database.Ping(); err != nil {
+		log.Fatalf("ERR : %v", err)
+	}
+
+	statement, err := database.Prepare(`
     CREATE TABLE IF NOT EXISTS videos (
       id TEXT PRIMARY KEY,
       series_id TEXT,
@@ -23,8 +25,13 @@ func InitializeDatabase() *sql.DB {
 			upload_date TEXT NOT NULL 
     );
   `)
+	if err != nil {
+		log.Fatalf("ERR : %v", err)
+	}
 
-	statement2, err2 := database.Prepare(`
+	statement.Exec()
+
+	statement, err = database.Prepare(`
 		CREATE TABLE IF NOT EXISTS covers (
 			id TEXT PRIMARY KEY,
 			series_id TEXT NOT NULL UNIQUE,
@@ -32,18 +39,10 @@ func InitializeDatabase() *sql.DB {
 			upload_date TEXT NOT NULL
 		);
 	`)
-
-	switch {
-	case err1 != nil:
-		defer database.Close()
-		log.Fatalf("ERR : %v", err1)
-	case err2 != nil:
-		defer database.Close()
-		log.Fatalf("ERR : %v", err2)
+	if err != nil {
+		log.Fatalf("ERR : %v", err)
 	}
 
-	statement1.Exec()
-	statement2.Exec()
-
+	statement.Exec()
 	return database
 }

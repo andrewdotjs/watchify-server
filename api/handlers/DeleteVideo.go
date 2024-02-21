@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"database/sql"
+	"errors"
+	"log"
 	"net/http"
 	"os"
 	"path"
@@ -9,7 +11,6 @@ import (
 	"github.com/andrewdotjs/watchify-server/api/responses"
 )
 
-// Method: DELETE
 func DeleteVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 	var videoIdentifer string = r.URL.Query().Get("v")
 	var fileName string
@@ -20,30 +21,35 @@ func DeleteVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB
 		w.WriteHeader(400)
 		w.Write(responses.Error{
 			StatusCode: 400,
-			ErrorCode:  "3",
 			Message:    "v query param was not passed in.",
 		}.ToJSON())
 		return
 	}
 
 	if err := database.QueryRow(`SELECT file_name FROM videos WHERE id=?;`, videoIdentifer).Scan(&fileName); err != nil {
-		w.WriteHeader(400)
-		w.Write(responses.Error{
-			StatusCode: 400,
-			ErrorCode:  "20",
-			Message:    "Unable to find video identifier from v.",
-		}.ToJSON())
-		return
+		if errors.Is(err, sql.ErrNoRows) {
+			w.WriteHeader(400)
+			w.Write(responses.Error{
+				StatusCode: 400,
+				Message:    "Unable to find video identifier from v.",
+			}.ToJSON())
+			return
+		} else {
+			log.Fatalf("ERR : %v", err)
+		}
 	}
 
 	if err := os.Remove(path.Join("./storage/videos", fileName)); err != nil {
-		w.WriteHeader(400)
-		w.Write(responses.Error{
-			StatusCode: 400,
-			ErrorCode:  "310",
-			Message:    "Could not delete video from storage",
-		}.ToJSON())
-		return
+		if errors.Is(err, os.ErrNotExist) {
+			w.WriteHeader(400)
+			w.Write(responses.Error{
+				StatusCode: 400,
+				Message:    "Could not delete video from storage",
+			}.ToJSON())
+			return
+		} else {
+			log.Fatalf("ERR : %v", err)
+		}
 	}
 
 	if _, err := database.Exec(`DELETE FROM videos WHERE id=?;`, videoIdentifer); err != nil {

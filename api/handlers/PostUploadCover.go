@@ -26,7 +26,6 @@ func UploadCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB
 		w.WriteHeader(400)
 		w.Write(responses.Error{
 			StatusCode: 400,
-			ErrorCode:  "40013",
 			Message:    "Did the file exceed 1MB?",
 		}.ToJSON())
 		return
@@ -40,7 +39,6 @@ func UploadCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB
 		w.WriteHeader(400)
 		w.Write(responses.Error{
 			StatusCode: 400,
-			ErrorCode:  "4001341",
 			Message:    "Unable to get file from form. Was fileName set to cover?",
 		}.ToJSON())
 		return
@@ -66,41 +64,26 @@ func UploadCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB
 		cover.FileName,
 		cover.UploadDate,
 	); err != nil {
-		w.WriteHeader(400)
-		w.Write(responses.Error{
-			StatusCode: 400,
-			ErrorCode:  "40203",
-			Message:    "Unable to insert data into the database.",
-		}.ToJSON())
 		log.Fatalf("ERR : %v", err)
 		return
 	}
 
-	// Create the file in the upload directory
 	uploadPath := filepath.Join(uploadDirectory, cover.FileName)
 	out, err := os.Create(uploadPath)
-
-	// Error handling if the file cannot be created
 	if err != nil {
 		w.WriteHeader(500)
 		w.Write(responses.Error{
 			StatusCode: 500,
-			ErrorCode:  "5032",
 			Message:    "Unable to create file.",
 		}.ToJSON())
 		return
+	} else {
+		defer out.Close()
 	}
-
-	defer out.Close()
 
 	// Copy the file to the destination and error handle.
 	if _, err := io.Copy(out, file); err != nil {
-		w.WriteHeader(500)
-		w.Write(responses.Error{
-			StatusCode: 500,
-			ErrorCode:  "500",
-			Message:    "Unable to copy file.",
-		}.ToJSON())
+		log.Fatalf("ERR : %v", err)
 		return
 	}
 

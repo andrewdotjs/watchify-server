@@ -6,9 +6,9 @@ import (
 )
 
 type Error struct {
-	StatusCode int    `json:"status_code"` // HTTP status code
-	ErrorCode  string `json:"error_code"`  // Custom code
-	Message    string `json:"message"`     // Message quickly explaining error
+	StatusCode int    `json:"status_code"`          // HTTP status code
+	ErrorCode  int    `json:"error_code,omitempty"` // Custom code
+	Message    string `json:"message,omitempty"`    // Message quickly explaining error
 }
 
 func (v Error) ToJSON() []byte {
