@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/andrewdotjs/watchify-server/api/handlers"
 	"github.com/andrewdotjs/watchify-server/api/middleware"
+	"github.com/andrewdotjs/watchify-server/utilities"
 
 	"github.com/gorilla/mux"
 	_ "github.com/mattn/go-sqlite3"
@@ -20,40 +20,38 @@ import (
 
 func main() {
 	const PORT int = 8080
-	database, err := sql.Open("sqlite3", "./db/videos.db")
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Ensure that the needed tables are ready
-	statement, err := database.Prepare(`
-    CREATE TABLE IF NOT EXISTS videos (
-      id TEXT PRIMARY KEY,
-      series_id TEXT,
-      episode_number INTEGER,
-      title TEXT,
-			file_name TEXT NOT NULL,
-			upload_date TEXT NOT NULL 
-    );
-  `)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	statement.Exec()
-	defer database.Close()
-
+	database := utilities.InitializeDatabase()
 	router := mux.NewRouter()
 
 	// Video collection
-	router.HandleFunc("/api/v1/video/info", handlers.GetInfoHandler).Methods("GET")
-	router.HandleFunc("/api/v1/video/stream", handlers.StreamHandler).Methods("GET")
-	router.HandleFunc("/api/v1/video/upload", handlers.UploadVideoHandler).Methods("POST")
-	router.HandleFunc("/api/v1/video/delete", handlers.DeleteVideoHandler).Methods("DELETE")
+	router.HandleFunc("/api/v1/videos/stream", handlers.StreamHandler).Methods("GET")
 
-	// Series collection
+	router.HandleFunc("/api/v1/videos/upload", func(w http.ResponseWriter, r *http.Request) {
+		handlers.UploadVideoHandler(w, r, database)
+	}).Methods("POST")
+
+	router.HandleFunc("/api/v1/videos/delete", func(w http.ResponseWriter, r *http.Request) {
+		handlers.DeleteVideoHandler(w, r, database)
+	}).Methods("DELETE")
+
+	router.HandleFunc("/api/v1/videos", func(w http.ResponseWriter, r *http.Request) {
+		handlers.GetVideoHandler(w, r, database)
+	}).Methods("GET")
+
+	// Cover collection
+	router.HandleFunc("/api/v1/covers/upload", func(w http.ResponseWriter, r *http.Request) {
+		handlers.UploadCoverHandler(w, r, database)
+	}).Methods("POST")
+
+	router.HandleFunc("/api/v1/covers/delete", func(w http.ResponseWriter, r *http.Request) {
+		handlers.DeleteCoverHandler(w, r, database)
+	}).Methods("DELETE")
+
+	router.HandleFunc("/api/v1/covers", func(w http.ResponseWriter, r *http.Request) {
+		handlers.GetCoverHandler(w, r, database)
+	}).Methods("GET")
+
+	// Middleware
 	router.Use(middleware.EndpointLogger)
 
 	server := &http.Server{
@@ -82,6 +80,7 @@ func main() {
 
 	<-c
 
+	defer database.Close()
 	server.Shutdown(context.Background())
 	log.Println("SYS : Shutting down...")
 	os.Exit(0)

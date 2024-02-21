@@ -17,7 +17,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func UploadVideoHandler(w http.ResponseWriter, r *http.Request) {
+func UploadVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 	w.Header().Set("Content-Type", "application/json")
 	var uploadDirectory string = "./storage/videos"
 	var video types.Video
@@ -96,17 +96,16 @@ func UploadVideoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Insert data into SQLite database
-	database, err := sql.Open("sqlite3", "./db/videos.db")
-	if err != nil {
-		http.Error(w, "Unable to connect to database", http.StatusInternalServerError)
-		return
-	}
-
-	defer database.Close()
 	video.UploadDate = time.Now().Format("2006-01-02 15:04:05")
 
-	if _, err = database.Exec(`INSERT INTO videos VALUES (?, ?, ?, ?, ?, ?)`, video.Id, video.SeriesId, video.Episode, video.Title, video.FileName, video.UploadDate); err != nil {
+	if _, err = database.Exec(
+		`INSERT INTO videos VALUES (?, ?, ?, ?, ?, ?)`,
+		video.Id, video.SeriesId,
+		video.Episode,
+		video.Title,
+		video.FileName,
+		video.UploadDate,
+	); err != nil {
 		w.WriteHeader(400)
 		w.Write(responses.Error{
 			StatusCode: 400,
@@ -116,7 +115,7 @@ func UploadVideoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(200)
 	w.Write(responses.Video{
 		StatusCode: 200,
 		Data:       video,

@@ -9,48 +9,50 @@ import (
 	"github.com/andrewdotjs/watchify-server/api/responses"
 )
 
-// Method: DELETE
-func DeleteVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
-	var videoIdentifer string = r.URL.Query().Get("v")
+func DeleteCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
+	var coverIdentifer string = r.URL.Query().Get("c")
 	var fileName string
 
 	w.Header().Set("Content-Type", "application/json")
 
-	if videoIdentifer == "" {
+	if coverIdentifer == "" {
 		w.WriteHeader(400)
 		w.Write(responses.Error{
 			StatusCode: 400,
 			ErrorCode:  "3",
-			Message:    "v query param was not passed in.",
+			Message:    "c query param was not passed in.",
 		}.ToJSON())
 		return
 	}
 
-	if err := database.QueryRow(`SELECT file_name FROM videos WHERE id=?;`, videoIdentifer).Scan(&fileName); err != nil {
+	err := database.QueryRow(`SELECT file_name FROM covers WHERE id=?`, coverIdentifer).Scan(&fileName)
+	if err != nil {
 		w.WriteHeader(400)
 		w.Write(responses.Error{
 			StatusCode: 400,
 			ErrorCode:  "20",
-			Message:    "Unable to find video identifier from v.",
+			Message:    "Unable to find cover identifier from c.",
 		}.ToJSON())
 		return
 	}
 
-	if err := os.Remove(path.Join("./storage/videos", fileName)); err != nil {
+	err = os.Remove(path.Join("./storage/covers", fileName))
+
+	if err != nil {
 		w.WriteHeader(400)
 		w.Write(responses.Error{
 			StatusCode: 400,
 			ErrorCode:  "310",
-			Message:    "Could not delete video from storage",
+			Message:    "Could not delete cover from storage",
 		}.ToJSON())
 		return
 	}
 
-	if _, err := database.Exec(`DELETE FROM videos WHERE id=?;`, videoIdentifer); err != nil {
+	if _, err = database.Exec(`DELETE FROM videos WHERE id=?`, coverIdentifer); err != nil {
 		w.WriteHeader(400)
 		w.Write(responses.Error{
 			StatusCode: 400,
-			Message:    "Could not delete video information from database.",
+			Message:    "Could not delete cover information from database.",
 		}.ToJSON())
 		return
 	}
