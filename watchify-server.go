@@ -20,6 +20,9 @@ import (
 
 func main() {
 	const PORT int = 8080
+
+	// Do server initialization
+	utilities.InitializeServer()
 	database := utilities.InitializeDatabase()
 	router := mux.NewRouter()
 
@@ -27,7 +30,7 @@ func main() {
 	router.HandleFunc("/api/v1/videos/stream", handlers.StreamHandler).Methods("GET")
 
 	router.HandleFunc("/api/v1/videos/upload", func(w http.ResponseWriter, r *http.Request) {
-		handlers.UploadVideoHandler(w, r, database)
+		handlers.PostVideoHandler(w, r, database)
 	}).Methods("POST")
 
 	router.HandleFunc("/api/v1/videos/delete", func(w http.ResponseWriter, r *http.Request) {
@@ -40,7 +43,7 @@ func main() {
 
 	// Cover collection
 	router.HandleFunc("/api/v1/covers/upload", func(w http.ResponseWriter, r *http.Request) {
-		handlers.UploadCoverHandler(w, r, database)
+		handlers.PostCoverHandler(w, r, database)
 	}).Methods("POST")
 
 	router.HandleFunc("/api/v1/covers/delete", func(w http.ResponseWriter, r *http.Request) {

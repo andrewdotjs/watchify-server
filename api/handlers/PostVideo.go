@@ -17,7 +17,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func UploadVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
+func PostVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 	w.Header().Set("Content-Type", "application/json")
 	var uploadDirectory string = "./storage/videos"
 	var video types.Video
