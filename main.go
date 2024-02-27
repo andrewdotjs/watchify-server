@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -20,17 +21,22 @@ import (
 
 func main() {
 	const PORT int = 8080
+	var database *sql.DB
+	var router *mux.Router
+	var appDirectory string
 
 	// Do server initialization
-	utilities.InitializeServer()
-	database := utilities.InitializeDatabase()
-	router := mux.NewRouter()
+	appDirectory = utilities.InitializeServer()
+	database = utilities.InitializeDatabase()
+	router = mux.NewRouter()
 
 	// Video collection
-	router.HandleFunc("/api/v1/videos/stream", handlers.StreamHandler).Methods("GET")
+	router.HandleFunc("/api/v1/videos/stream", func(w http.ResponseWriter, r *http.Request) {
+		handlers.StreamHandler(w, r, database, &appDirectory)
+	}).Methods("GET")
 
 	router.HandleFunc("/api/v1/videos/upload", func(w http.ResponseWriter, r *http.Request) {
-		handlers.PostVideoHandler(w, r, database)
+		handlers.PostVideoHandler(w, r, database, &appDirectory)
 	}).Methods("POST")
 
 	router.HandleFunc("/api/v1/videos/delete", func(w http.ResponseWriter, r *http.Request) {
@@ -43,15 +49,15 @@ func main() {
 
 	// Cover collection
 	router.HandleFunc("/api/v1/covers/upload", func(w http.ResponseWriter, r *http.Request) {
-		handlers.PostCoverHandler(w, r, database)
+		handlers.PostCoverHandler(w, r, database, &appDirectory)
 	}).Methods("POST")
 
 	router.HandleFunc("/api/v1/covers/delete", func(w http.ResponseWriter, r *http.Request) {
-		handlers.DeleteCoverHandler(w, r, database)
+		handlers.DeleteCoverHandler(w, r, database, &appDirectory)
 	}).Methods("DELETE")
 
 	router.HandleFunc("/api/v1/covers", func(w http.ResponseWriter, r *http.Request) {
-		handlers.GetCoverHandler(w, r, database)
+		handlers.GetCoverHandler(w, r, database, &appDirectory)
 	}).Methods("GET")
 
 	// Middleware
