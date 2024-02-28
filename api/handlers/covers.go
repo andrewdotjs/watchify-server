@@ -15,21 +15,29 @@ import (
 
 	"github.com/andrewdotjs/watchify-server/api/responses"
 	"github.com/andrewdotjs/watchify-server/api/types"
+	"github.com/andrewdotjs/watchify-server/api/utilities"
 	"github.com/google/uuid"
 )
 
-// Handles requests at the "/api/v1/covers" endpoint. Requires the
-// c query parameter to be passed in for the client to recieve the
-// image.
+// Returns an image stored in the database and file system. For any errors, logs error to file
+// then falls back to placeholder.
+//
+// Specifications:
+//   - Method        : GET
+//   - Endpoint      : api/v1/covers
+//   - Authorization : False
+//
+// HTTP request query parameters (Optional):
+//   - id            : Matches provided id with cover, falls back to placeholder if fails.
+//   - s             : Matches provided series id with cover, falls back to placeholder if fails.
 func GetCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	var coverIdentifier string = r.URL.Query().Get("c")
 	var uploadDirectory string
 	var coverFileName string
 
 	if coverIdentifier == "" {
-		responses.Status{
-			StatusCode: 400,
-			Message:    "c query param not passed in.",
+		responses.File{
+			FileBuffer: utilities.PlaceholderCover(),
 		}.ToClient(w)
 		return
 	}
@@ -40,9 +48,9 @@ func GetCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, a
 			log.Fatalf("ERR : %v", err)
 		}
 
-		responses.Status{
-			StatusCode: 500,
-			Message:    "No database match for provided id.",
+		// Log failure to file "no database match for provided id."
+		responses.File{
+			FileBuffer: utilities.PlaceholderCover(),
 		}.ToClient(w)
 		return
 	}
@@ -58,11 +66,8 @@ func GetCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, a
 
 		log.Printf("SYS : Could not find upload directory at '%s'. Creating one.", uploadDirectory)
 		os.Mkdir(uploadDirectory, os.ModePerm)
-		responses.Status{
-			StatusCode: 500,
-			Message:    "Could not find folder in file system. Folder has been created.",
-		}.ToClient(w)
-		return
+
+		// log to file "Could not find folder in file system. Folder has been created."
 	}
 
 	// Read file at upload directory and
@@ -73,20 +78,36 @@ func GetCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, a
 			log.Fatalf("ERR : %v", err)
 		}
 
-		responses.Status{
-			StatusCode: 500,
-			Message:    "Could not find file in file system.",
+		// log to file "Could not find file in file system."
+
+		responses.File{
+			FileBuffer: utilities.PlaceholderCover(),
 		}.ToClient(w)
 		return
 	}
 
+	log.Print(buffer)
 	responses.File{
 		FileBuffer: buffer,
 	}.ToClient(w)
 }
 
-// Handles requests at the "/api/v1/covers/upload" endpoint. Requires
-// a mulitpart form with the field names cover (jpg), series-id (string),
+// Allows the user to upload a file to the file system and store its information to
+// the database.
+//
+// Specifications:
+//   - Method        : POST
+//   - Endpoint      : api/v1/covers
+//   - Authorization : False
+//
+// HTTP request multipart form:
+//   - series-id     : Id of the series that the user wants to attach the cover to.
+//
+// HTTP response JSON contents:
+//   - status_code   : HTTP status code.
+//   - error_code    : If error, gives in-house error code for debugging. (not implemented yet)
+//   - message       : If error, Message detailing the error.
+//   - data          : id, series_id
 func PostCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	var uploadDirectory string
 	var uploadPath string

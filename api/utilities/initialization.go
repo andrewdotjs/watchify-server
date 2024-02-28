@@ -9,8 +9,10 @@ import (
 	"path/filepath"
 )
 
-func InitializeDatabase() *sql.DB {
-	database, err := sql.Open("sqlite3", "./db/videos.db")
+func InitializeDatabase(appDirectory *string) *sql.DB {
+	databaseDirectory := path.Join(*appDirectory, "db", "app.db")
+
+	database, err := sql.Open("sqlite3", databaseDirectory)
 	if err != nil {
 		log.Fatalf("ERR : %v", err)
 	}

@@ -27,7 +27,7 @@ func main() {
 
 	// Do server initialization
 	appDirectory = utilities.InitializeServer()
-	database = utilities.InitializeDatabase()
+	database = utilities.InitializeDatabase(&appDirectory)
 	router = mux.NewRouter()
 
 	// Video collection
