@@ -3,59 +3,79 @@ package handlers
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"log"
-	"math"
 	"net/http"
 	"os"
 	"path"
 	"strconv"
-	"strings"
 
 	"github.com/andrewdotjs/watchify-server/api/responses"
 	"github.com/andrewdotjs/watchify-server/api/types"
 	"github.com/andrewdotjs/watchify-server/api/utilities"
+	"github.com/gorilla/mux"
 )
 
+// Allows the user to upload a file to the file system and store its information to
+// the database.
+//
+// Specifications:
+//   - Method        : GET
+//   - Endpoint      : api/v1/videos
+//   - Authorization : False
+//
+// HTTP request path parameters:
+//   - id
+//
+// HTTP response JSON contents:
+//   - status_code   : HTTP status code.
+//   - error_code    : If error, gives in-house error code for debugging. (not implemented yet)
+//   - message       : If error, message detailing the error.
+//   - data          : id, title
 func GetVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
-	var videoIdentifier string = r.URL.Query().Get("v")
 	var video types.Video
+	parameters := mux.Vars(r)
 
-	if videoIdentifier == "" {
-		var queryLimit int
-		var videoArray []types.Video
+	id, _ := parameters["id"]
 
-		if r.URL.Query().Get("limit") != "" {
-			queryLimit, _ = strconv.Atoi(r.URL.Query().Get("limit"))
+	log.Println(id)
+
+	err := database.QueryRow("SELECT id, series_id, title FROM videos WHERE id=?;", id).Scan(&video.Id, &video.SeriesId, &video.Episode, &video.Title, &video.FileName, &video.UploadDate)
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			defer database.Close()
+			log.Fatalf("ERR : %v", err)
 		}
 
-		if (queryLimit < 1) || (queryLimit > 20) {
-			queryLimit = 20
-		}
+		responses.Status{
+			StatusCode: 400,
+			Message:    "No database matches with provided id.",
+		}.ToClient(w)
+		return
+	}
 
-		rows, err := database.Query(`SELECT id, title FROM video WHERE series_id='' LIMIT ?;`, queryLimit)
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				responses.Status{
-					StatusCode: 200,
-					Data:       videoArray,
-				}.ToClient(w)
-				return
-			} else {
-				log.Fatalf("ERR : %v", err)
-			}
-		}
+	responses.Status{
+		StatusCode: 200,
+		Data:       video,
+	}.ToClient(w)
+}
 
-		defer rows.Close()
+func GetAllVideosHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
+	var queryLimit int
+	var videoArray []types.Video
 
-		for rows.Next() {
-			var video types.Video
+	if r.URL.Query().Get("limit") != "" {
+		queryLimit, _ = strconv.Atoi(r.URL.Query().Get("limit"))
+	}
 
-			if err := rows.Scan(&video.Id, &video.Title); err != nil {
-				log.Fatalf("ERR : %v", err)
-			}
+	if (queryLimit < 1) || (queryLimit > 20) {
+		queryLimit = 20
+	}
 
-			videoArray = append(videoArray, video)
+	rows, err := database.Query(`SELECT id, title FROM videos WHERE series_id='' LIMIT ?;`, queryLimit)
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			defer database.Close()
+			log.Fatalf("ERR : %v", err)
 		}
 
 		responses.Status{
@@ -65,102 +85,41 @@ func GetVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 		return
 	}
 
-	err := database.QueryRow(
-		"SELECT id, series_id, title FROM videos WHERE id=?;",
-		videoIdentifier,
-	).Scan(
-		&video.Id,
-		&video.SeriesId,
-		&video.Episode,
-		&video.Title,
-		&video.FileName,
-		&video.UploadDate,
-	)
+	defer rows.Close()
 
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			responses.Status{
-				StatusCode: 400,
-				Message:    "No database matche with the provided id.",
-			}.ToClient(w)
-			return
+	for rows.Next() {
+		var video types.Video
+
+		if err := rows.Scan(&video.Id, &video.Title); err != nil {
+			log.Fatalf("ERR : %v", err)
 		}
 
-		defer database.Close()
-		log.Fatalf("ERR : %v", err)
+		videoArray = append(videoArray, video)
 	}
 
 	responses.Status{
 		StatusCode: 200,
-		Data:       video,
+		Data:       videoArray,
 	}.ToClient(w)
+	return
 }
 
-func StreamHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
-	var videoIdentifier string = r.URL.Query().Get("v")
-	var fileName string
-	var filePath string
-	var err error
-
-	if videoIdentifier == "" {
-		responses.Status{
-			StatusCode: 400,
-			Message:    "Invalid query parameters.",
-		}.ToClient(w)
-		return
-	}
-
-	err = database.QueryRow("SELECT file_name FROM videos WHERE id=?", videoIdentifier).Scan(&fileName)
-
-	filePath = path.Join(*appDirectory, "storage", "videos", fileName)
-	videoFile, err := os.Open(filePath)
-	if err != nil {
-		responses.Status{
-			StatusCode: 500,
-			Message:    "Error opening video file.",
-		}.ToClient(w)
-		return
-	}
-
-	defer videoFile.Close()
-
-	// Get file information
-	fileInfo, err := videoFile.Stat()
-	if err != nil {
-		responses.Status{
-			StatusCode: 500,
-			Message:    "Error getting video file information.",
-		}.ToClient(w)
-		return
-	}
-
-	// Get total file size
-	fileSize := fileInfo.Size()
-
-	w.Header().Set("Content-Type", "video/mp4")
-
-	// Parse the Range header to determine the requested byte range
-	rangeHeader := r.Header.Get("Range")
-	if rangeHeader != "" {
-		ranges := strings.SplitN(rangeHeader[6:], "-", 2)
-		start, _ := strconv.ParseInt(ranges[0], 10, 64)
-		CHUNK_SIZE := math.Pow(10, 6)
-
-		// Set the appropriate headers for partial content
-		w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, utilities.Minimum((int(start)+int(CHUNK_SIZE)), (int(fileSize)-1)), fileSize))
-		w.Header().Set("Content-Length", fmt.Sprintf("%d", fileSize-start))
-		w.WriteHeader(206)
-
-		// Seek to the specified position and stream the partial content
-		videoFile.Seek(start, 0)
-		http.ServeContent(w, r, filePath, fileInfo.ModTime(), videoFile)
-	} else {
-		// If no Range header is present, serve the entire file
-		w.Header().Set("Content-Length", fmt.Sprintf("%d", fileSize))
-		http.ServeContent(w, r, filePath, fileInfo.ModTime(), videoFile)
-	}
-}
-
+// Allows the user to upload a video to the file system and store its information to
+// the database.
+//
+// Specifications:
+//   - Method        : GET
+//   - Endpoint      : api/v1/videos
+//   - Authorization : False
+//
+// HTTP request path parameters:
+//   - id
+//
+// HTTP response JSON contents:
+//   - status_code   : HTTP status code.
+//   - error_code    : If error, gives in-house error code for debugging. (not implemented yet)
+//   - message       : If error, message detailing the error.
+//   - data          : id, title
 func PostVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	var uploadDirectory string = path.Join(*appDirectory, "storage", "videos")
 	var video types.Video
@@ -198,19 +157,28 @@ func PostVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, 
 	return
 }
 
-func DeleteVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
-	var videoIdentifer string = r.URL.Query().Get("v")
+// Deletes a video from the database and file system.
+//
+// Specifications:
+//   - Method        : DELETE
+//   - Endpoint      : api/v1/videos
+//   - Authorization : False
+//
+// HTTP request query parameters:
+//   - id            : Required.
+func DeleteVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	var fileName string
+	parameters := mux.Vars(r)
 
-	if videoIdentifer == "" {
+	id, ok := parameters["id"]
+	if !ok {
 		responses.Status{
 			StatusCode: 400,
-			Message:    "Invalid query parameters.",
+			Message:    "id is missing in path parameters",
 		}.ToClient(w)
-		return
 	}
 
-	if err := database.QueryRow(`SELECT file_name FROM videos WHERE id=?;`, videoIdentifer).Scan(&fileName); err != nil {
+	if err := database.QueryRow(`SELECT file_name FROM videos WHERE id=?;`, id).Scan(&fileName); err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			defer database.Close()
 			log.Fatalf("ERR : %v", err)
@@ -236,7 +204,7 @@ func DeleteVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB
 		return
 	}
 
-	if _, err := database.Exec(`DELETE FROM videos WHERE id=?;`, videoIdentifer); err != nil {
+	if _, err := database.Exec(`DELETE FROM videos WHERE id=?;`, id); err != nil {
 		responses.Status{
 			StatusCode: 500,
 			Message:    "Error deleting video information from the database.",

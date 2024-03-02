@@ -31,34 +31,39 @@ func main() {
 	router = mux.NewRouter()
 
 	// Video collection
-	router.HandleFunc("/api/v1/videos/stream", func(w http.ResponseWriter, r *http.Request) {
-		handlers.StreamHandler(w, r, database, &appDirectory)
-	}).Methods("GET")
-
-	router.HandleFunc("/api/v1/videos/upload", func(w http.ResponseWriter, r *http.Request) {
-		handlers.PostVideoHandler(w, r, database, &appDirectory)
-	}).Methods("POST")
-
-	router.HandleFunc("/api/v1/videos/delete", func(w http.ResponseWriter, r *http.Request) {
-		handlers.DeleteVideoHandler(w, r, database)
-	}).Methods("DELETE")
-
-	router.HandleFunc("/api/v1/videos", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/api/v1/videos/{id}", func(w http.ResponseWriter, r *http.Request) {
 		handlers.GetVideoHandler(w, r, database)
 	}).Methods("GET")
 
-	// Cover collection
-	router.HandleFunc("/api/v1/covers/upload", func(w http.ResponseWriter, r *http.Request) {
-		handlers.PostCoverHandler(w, r, database, &appDirectory)
+	router.HandleFunc("/api/v1/videos", func(w http.ResponseWriter, r *http.Request) {
+		handlers.PostVideoHandler(w, r, database, &appDirectory)
 	}).Methods("POST")
 
-	router.HandleFunc("/api/v1/covers/delete", func(w http.ResponseWriter, r *http.Request) {
-		handlers.DeleteCoverHandler(w, r, database, &appDirectory)
+	router.HandleFunc("/api/v1/videos/{id}", func(w http.ResponseWriter, r *http.Request) {
+		handlers.DeleteVideoHandler(w, r, database, &appDirectory)
 	}).Methods("DELETE")
 
+	router.HandleFunc("/api/v1/videos", func(w http.ResponseWriter, r *http.Request) {
+		handlers.GetAllVideosHandler(w, r, database)
+	}).Methods("GET")
+
+	// Stream collection
+	router.HandleFunc("/api/v1/stream/{id}", func(w http.ResponseWriter, r *http.Request) {
+		handlers.StreamHandler(w, r, database, &appDirectory)
+	}).Methods("GET")
+
+	// Cover collection
 	router.HandleFunc("/api/v1/covers", func(w http.ResponseWriter, r *http.Request) {
 		handlers.GetCoverHandler(w, r, database, &appDirectory)
 	}).Methods("GET")
+
+	router.HandleFunc("/api/v1/covers", func(w http.ResponseWriter, r *http.Request) {
+		handlers.PostCoverHandler(w, r, database, &appDirectory)
+	}).Methods("POST")
+
+	router.HandleFunc("/api/v1/covers", func(w http.ResponseWriter, r *http.Request) {
+		handlers.DeleteCoverHandler(w, r, database, &appDirectory)
+	}).Methods("DELETE")
 
 	// Middleware
 	router.Use(middleware.EndpointLogger)

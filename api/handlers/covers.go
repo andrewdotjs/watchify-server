@@ -19,15 +19,14 @@ import (
 	"github.com/google/uuid"
 )
 
-// Returns an image stored in the database and file system. For any errors, logs error to file
-// then falls back to placeholder.
+// Returns the covers stored in the database and file-system.
 //
 // Specifications:
 //   - Method        : GET
 //   - Endpoint      : api/v1/covers
 //   - Authorization : False
 //
-// HTTP request query parameters (Optional):
+// HTTP request query parameters (Required that user queries with one of these):
 //   - id            : Matches provided id with cover, falls back to placeholder if fails.
 //   - s             : Matches provided series id with cover, falls back to placeholder if fails.
 func GetCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
@@ -106,7 +105,7 @@ func GetCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, a
 // HTTP response JSON contents:
 //   - status_code   : HTTP status code.
 //   - error_code    : If error, gives in-house error code for debugging. (not implemented yet)
-//   - message       : If error, Message detailing the error.
+//   - message       : If error, message detailing the error.
 //   - data          : id, series_id
 func PostCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	var uploadDirectory string
@@ -188,6 +187,20 @@ func PostCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, 
 	}.ToClient(w)
 }
 
+// Deletes a cover from the database and file system.
+//
+// Specifications:
+//   - Method        : DELETE
+//   - Endpoint      : api/v1/cover/delete
+//   - Authorization : False
+//
+// HTTP request query parameters:
+//   - id            :
+//
+// HTTP response JSON contents:
+//   - status_code   : HTTP status code.
+//   - error_code    : If error, gives in-house error code for debugging. (not implemented yet)
+//   - message       : If error, message detailing the error.
 func DeleteCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	var coverIdentifer string = r.URL.Query().Get("c")
 	var fileName string
