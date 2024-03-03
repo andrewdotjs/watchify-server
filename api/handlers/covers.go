@@ -17,6 +17,7 @@ import (
 	"github.com/andrewdotjs/watchify-server/api/types"
 	"github.com/andrewdotjs/watchify-server/api/utilities"
 	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 )
 
 // Returns the covers stored in the database and file-system.
@@ -30,18 +31,17 @@ import (
 //   - id            : Matches provided id with cover, falls back to placeholder if fails.
 //   - s             : Matches provided series id with cover, falls back to placeholder if fails.
 func GetCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
-	var coverIdentifier string = r.URL.Query().Get("c")
-	var uploadDirectory string
 	var coverFileName string
 
-	if coverIdentifier == "" {
+	id, ok := mux.Vars(r)["id"]
+	if !ok {
 		responses.File{
 			FileBuffer: utilities.PlaceholderCover(),
 		}.ToClient(w)
 		return
 	}
 
-	if err := database.QueryRow("SELECT file_name FROM covers WHERE id=?;", coverIdentifier).Scan(&coverFileName); err != nil {
+	if err := database.QueryRow("SELECT file_name FROM covers WHERE id=?;", id).Scan(&coverFileName); err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			defer database.Close()
 			log.Fatalf("ERR : %v", err)
@@ -54,7 +54,7 @@ func GetCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, a
 		return
 	}
 
-	uploadDirectory = path.Join(*appDirectory, "storage", "covers")
+	uploadDirectory := path.Join(*appDirectory, "storage", "covers")
 
 	// Create the upload directory if it doesn't exist
 	if _, err := os.Stat(uploadDirectory); err != nil {
@@ -90,6 +90,12 @@ func GetCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, a
 	}.ToClient(w)
 }
 
+func GetDefaultCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
+	responses.File{
+		FileBuffer: utilities.PlaceholderCover(),
+	}.ToClient(w)
+}
+
 // Allows the user to upload a file to the file system and store its information to
 // the database.
 //
@@ -107,10 +113,7 @@ func GetCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, a
 //   - message       : If error, message detailing the error.
 //   - data          : id, series_id
 func PostCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
-	var uploadDirectory string
-	var uploadPath string
 	var cover types.Cover
-	var id string
 
 	// Error handling if form data exceeds 1MB
 	if err := r.ParseMultipartForm(1 << 20); err != nil {
@@ -135,7 +138,7 @@ func PostCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, 
 
 	defer file.Close()
 
-	id = uuid.New().String()
+	id := uuid.New().String()
 	cover = types.Cover{
 		Id:         id,
 		SeriesId:   r.FormValue("series-id"),
@@ -143,7 +146,7 @@ func PostCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, 
 		UploadDate: time.Now().Format("2006-01-02 15:04:05"),
 	}
 
-	uploadDirectory = path.Join(*appDirectory, "storage", "covers")
+	uploadDirectory := path.Join(*appDirectory, "storage", "covers")
 
 	// Create the upload directory if it doesn't exist
 	if _, err := os.Stat(uploadDirectory); err != nil {
@@ -162,7 +165,7 @@ func PostCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, 
 		log.Fatalf("ERR : %v", err)
 	}
 
-	uploadPath = filepath.Join(uploadDirectory, cover.FileName)
+	uploadPath := filepath.Join(uploadDirectory, cover.FileName)
 	out, err := os.Create(uploadPath)
 	if err != nil {
 		responses.Status{
@@ -201,18 +204,19 @@ func PostCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, 
 //   - error_code    : If error, gives in-house error code for debugging. (not implemented yet)
 //   - message       : If error, message detailing the error.
 func DeleteCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
-	var coverIdentifer string = r.URL.Query().Get("c")
+
 	var fileName string
 
-	if coverIdentifer == "" {
+	id, ok := mux.Vars(r)["id"]
+	if !ok {
 		responses.Status{
 			StatusCode: 400,
-			Message:    "c query param was not passed in.",
+			Message:    "id not passed in",
 		}.ToClient(w)
 		return
 	}
 
-	if _, err := database.Exec(`DELETE FROM videos WHERE id=?`, coverIdentifer); err != nil {
+	if _, err := database.Exec(`DELETE FROM videos WHERE id=?`, id); err != nil {
 		responses.Status{
 			StatusCode: 400,
 			Message:    "Could not delete cover information from database.",
