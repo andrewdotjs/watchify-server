@@ -74,17 +74,17 @@ func main() {
 		handlers.GetSeriesHandler(w, r, database)
 	}).Methods("GET")
 
-	router.HandleFunc("/api/v1/series", func(w http.ResponseWriter, r *http.Request) {
-		handlers.GetAllSeriesHandler(w, r, database)
-	}).Methods("GET")
-
-	router.HandleFunc("/api/v1/series/{id}", func(w http.ResponseWriter, r *http.Request) {
-		handlers.PostSeriesHandler(w, r, database, &appDirectory)
-	}).Methods("POST")
-
 	router.HandleFunc("/api/v1/series/{id}", func(w http.ResponseWriter, r *http.Request) {
 		handlers.DeleteSeriesHandler(w, r, database, &appDirectory)
 	}).Methods("DELETE")
+
+	router.HandleFunc("/api/v1/series", func(w http.ResponseWriter, r *http.Request) {
+		handlers.PostSeriesHandler(w, r, database, &appDirectory)
+	}).Methods("POST")
+
+	router.HandleFunc("/api/v1/series", func(w http.ResponseWriter, r *http.Request) {
+		handlers.GetAllSeriesHandler(w, r, database)
+	}).Methods("GET")
 
 	// Middleware
 	router.Use(middleware.EndpointLogger)
