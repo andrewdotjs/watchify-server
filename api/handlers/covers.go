@@ -85,7 +85,6 @@ func GetCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, a
 		return
 	}
 
-	log.Print(buffer)
 	responses.File{
 		FileBuffer: buffer,
 	}.ToClient(w)
@@ -213,15 +212,10 @@ func DeleteCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB
 		return
 	}
 
-	if err := database.QueryRow(`SELECT file_name FROM covers WHERE id=?`, coverIdentifer).Scan(&fileName); err != nil {
-		if !errors.Is(err, sql.ErrNoRows) {
-			defer database.Close()
-			log.Fatalf("ERR : %v", err)
-		}
-
+	if _, err := database.Exec(`DELETE FROM videos WHERE id=?`, coverIdentifer); err != nil {
 		responses.Status{
 			StatusCode: 400,
-			Message:    "Unable to find cover identifier from c.",
+			Message:    "Could not delete cover information from database.",
 		}.ToClient(w)
 		return
 	}
@@ -235,14 +229,6 @@ func DeleteCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB
 		responses.Status{
 			StatusCode: 400,
 			Message:    "Could not delete cover from storage",
-		}.ToClient(w)
-		return
-	}
-
-	if _, err := database.Exec(`DELETE FROM videos WHERE id=?`, coverIdentifer); err != nil {
-		responses.Status{
-			StatusCode: 400,
-			Message:    "Could not delete cover information from database.",
 		}.ToClient(w)
 		return
 	}

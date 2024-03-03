@@ -35,13 +35,13 @@ func main() {
 		handlers.GetVideoHandler(w, r, database)
 	}).Methods("GET")
 
-	router.HandleFunc("/api/v1/videos", func(w http.ResponseWriter, r *http.Request) {
-		handlers.PostVideoHandler(w, r, database, &appDirectory)
-	}).Methods("POST")
-
 	router.HandleFunc("/api/v1/videos/{id}", func(w http.ResponseWriter, r *http.Request) {
 		handlers.DeleteVideoHandler(w, r, database, &appDirectory)
 	}).Methods("DELETE")
+
+	router.HandleFunc("/api/v1/videos", func(w http.ResponseWriter, r *http.Request) {
+		handlers.PostVideoHandler(w, r, database, &appDirectory)
+	}).Methods("POST")
 
 	router.HandleFunc("/api/v1/videos", func(w http.ResponseWriter, r *http.Request) {
 		handlers.GetAllVideosHandler(w, r, database)
@@ -63,6 +63,23 @@ func main() {
 
 	router.HandleFunc("/api/v1/covers", func(w http.ResponseWriter, r *http.Request) {
 		handlers.DeleteCoverHandler(w, r, database, &appDirectory)
+	}).Methods("DELETE")
+
+	// Series collection
+	router.HandleFunc("/api/v1/series/{id}", func(w http.ResponseWriter, r *http.Request) {
+		handlers.GetSeriesHandler(w, r, database)
+	}).Methods("GET")
+
+	router.HandleFunc("/api/v1/series", func(w http.ResponseWriter, r *http.Request) {
+		handlers.GetAllSeriesHandler(w, r, database)
+	}).Methods("GET")
+
+	router.HandleFunc("/api/v1/series/{id}", func(w http.ResponseWriter, r *http.Request) {
+		handlers.PostSeriesHandler(w, r, database, &appDirectory)
+	}).Methods("POST")
+
+	router.HandleFunc("/api/v1/series/{id}", func(w http.ResponseWriter, r *http.Request) {
+		handlers.DeleteSeriesHandler(w, r, database, &appDirectory)
 	}).Methods("DELETE")
 
 	// Middleware

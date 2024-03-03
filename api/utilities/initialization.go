@@ -21,24 +21,23 @@ func InitializeDatabase(appDirectory *string) *sql.DB {
 		log.Fatalf("ERR : %v", err)
 	}
 
-	statement, err := database.Prepare(`
+	_, err = database.Exec(`
     CREATE TABLE IF NOT EXISTS videos (
       id TEXT PRIMARY KEY,
       series_id TEXT,
       episode INTEGER,
-      title TEXT,
+      title TEXT NOT NULL,
 			file_name TEXT NOT NULL,
 			file_extension TEXT NOT NULL,
-			upload_date TEXT NOT NULL
+			upload_date TEXT NOT NULL,
+			last_modified TEXT NOT NULL
     );
   `)
 	if err != nil {
 		log.Fatalf("ERR : %v", err)
 	}
 
-	statement.Exec()
-
-	statement, err = database.Prepare(`
+	_, err = database.Exec(`
 		CREATE TABLE IF NOT EXISTS covers (
 			id TEXT PRIMARY KEY,
 			series_id TEXT NOT NULL UNIQUE,
@@ -50,7 +49,20 @@ func InitializeDatabase(appDirectory *string) *sql.DB {
 		log.Fatalf("ERR : %v", err)
 	}
 
-	statement.Exec()
+	_, err = database.Exec(`
+		CREATE TABLE IF NOT EXISTS series (
+			id TEXT PRIMARY KEY,
+			title TEXT NOT NULL,
+			description TEXT NOT NULL,
+			episodes INTEGER NOT NULL,
+			upload_date TEXT NOT NULL,
+		  last_modified TEXT NOT NULL
+		);
+	`)
+	if err != nil {
+		log.Fatalf("ERR : %v", err)
+	}
+
 	return database
 }
 

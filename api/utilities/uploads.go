@@ -10,6 +10,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/andrewdotjs/watchify-server/api/types"
 	"github.com/google/uuid"
@@ -35,19 +36,18 @@ func HandleVideoUpload(uploadedFile *multipart.FileHeader, video *types.Video, d
 	video.Id = uuid.New().String()
 	video.FileExtension = splitFileName[1]
 	video.FileName = fmt.Sprintf("%v.%v", video.Id, video.FileExtension)
+	currentTime := time.Now().Format("01-02-2006 15:04:05")
+	video.UploadDate = currentTime
+	video.LastModified = currentTime
 
 	_, err = database.Exec(`
 	  INSERT INTO videos
-		VALUES (
-			?,
-			?,
-			?,
-			?,
-			?,
-			datetime("now", "localtime"),
-			datetime("now", "localtime"),
-		);
-	`, video.Id, video.SeriesId, video.Episode, video.Title, video.FileName, video.FileExtension) // TODO: Find a way to make this shorter w/o lame formatting
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+	`, video.Id, video.SeriesId, video.Episode, video.Title, video.FileName, video.FileExtension, video.UploadDate, video.LastModified) // TODO: Find a way to make this shorter w/o lame formatting
+	if err != nil {
+		defer database.Close()
+		log.Fatalf("ERR : %v", err)
+	}
 
 	uploadPath = path.Join(*uploadDirectory, video.FileName)
 	out, err := os.Create(uploadPath)

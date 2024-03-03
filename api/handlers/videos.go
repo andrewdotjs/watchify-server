@@ -34,12 +34,9 @@ import (
 func GetVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 	var video types.Video
 	parameters := mux.Vars(r)
+	id := parameters["id"]
 
-	id, _ := parameters["id"]
-
-	log.Println(id)
-
-	err := database.QueryRow("SELECT id, series_id, title FROM videos WHERE id=?;", id).Scan(&video.Id, &video.SeriesId, &video.Episode, &video.Title, &video.FileName, &video.UploadDate)
+	err := database.QueryRow("SELECT id, series_id, title FROM videos WHERE id=?;", id).Scan(&video.Id, &video.SeriesId, &video.Title)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			defer database.Close()
@@ -47,8 +44,8 @@ func GetVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 		}
 
 		responses.Status{
-			StatusCode: 400,
-			Message:    "No database matches with provided id.",
+			StatusCode: 200,
+			Data:       nil,
 		}.ToClient(w)
 		return
 	}
@@ -178,15 +175,10 @@ func DeleteVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB
 		}.ToClient(w)
 	}
 
-	if err := database.QueryRow(`SELECT file_name FROM videos WHERE id=?;`, id).Scan(&fileName); err != nil {
-		if !errors.Is(err, sql.ErrNoRows) {
-			defer database.Close()
-			log.Fatalf("ERR : %v", err)
-		}
-
+	if _, err := database.Exec(`DELETE FROM videos WHERE id=?;`, id); err != nil {
 		responses.Status{
 			StatusCode: 500,
-			Message:    "No database match with the provided id.",
+			Message:    "Error deleting video information from the database.",
 		}.ToClient(w)
 		return
 	}
@@ -200,14 +192,6 @@ func DeleteVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB
 		responses.Status{
 			StatusCode: 500,
 			Message:    "Error removing video file.",
-		}.ToClient(w)
-		return
-	}
-
-	if _, err := database.Exec(`DELETE FROM videos WHERE id=?;`, id); err != nil {
-		responses.Status{
-			StatusCode: 500,
-			Message:    "Error deleting video information from the database.",
 		}.ToClient(w)
 		return
 	}
