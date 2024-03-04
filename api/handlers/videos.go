@@ -15,28 +15,29 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// Allows the user to upload a file to the file system and store its information to
-// the database.
+// Allows the client to retrieve the details of a specific uploaded video via passed in id.
 //
-// Specifications:
+// # Specifications:
 //   - Method        : GET
-//   - Endpoint      : api/v1/videos
+//   - Endpoint      : api/v1/videos/{id}
 //   - Authorization : False
 //
-// HTTP request path parameters:
+// # HTTP request path parameters:
 //   - id
 //
-// HTTP response JSON contents:
+// # HTTP query parameters are not required.
+//
+// # HTTP response JSON contents:
 //   - status_code   : HTTP status code.
 //   - error_code    : If error, gives in-house error code for debugging. (not implemented yet)
 //   - message       : If error, message detailing the error.
-//   - data          : id, title
+//   - data          : id, series_id, title (if empty, json data is empty)
 func GetVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
-	var video types.Video
 	parameters := mux.Vars(r)
 	id := parameters["id"]
+	video := types.Video{Id: id}
 
-	err := database.QueryRow("SELECT id, series_id, title FROM videos WHERE id=?;", id).Scan(&video.Id, &video.SeriesId, &video.Title)
+	err := database.QueryRow("SELECT series_id, title FROM videos WHERE id=?;", video.Id).Scan(&video.SeriesId, &video.Title)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			defer database.Close()
@@ -56,6 +57,26 @@ func GetVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 	}.ToClient(w)
 }
 
+// Allows the client to retrieve the details of a specific uploaded video via passed in id.
+//
+// # Specifications:
+//   - Method        : GET
+//   - Endpoint      : api/v1/videos
+//   - Authorization : False
+//
+// # HTTP request path parameters are not required.
+//
+// # HTTP query parameters:
+//   - limit      : Limit of how many videos to return at once.
+//   - pagination : Offset of query to allow for pages in client. offset = limit(page - 1).
+//   - sort       : Sorts it either ascending it descending.
+//   - search     : Hard searches for video by title.
+//
+// # HTTP response JSON contents:
+//   - status_code : HTTP status code.
+//   - error_code  : If error, gives in-house error code for debugging. (not implemented yet)
+//   - message     : If error, message detailing the error.
+//   - data        : []{id, series_id, title} (if empty, json data is empty)
 func GetAllVideosHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 	var queryLimit int
 	var videoArray []types.Video
@@ -101,24 +122,23 @@ func GetAllVideosHandler(w http.ResponseWriter, r *http.Request, database *sql.D
 	return
 }
 
-// Allows the user to upload a video to the file system and store its information to
+// Allows the client to upload a video to the file system and store its information to
 // the database.
 //
-// Specifications:
+// # Specifications:
 //   - Method        : GET
 //   - Endpoint      : api/v1/videos
-//   - Authorization : False
+//   - Auth?         : False
 //
-// HTTP request path parameters:
-//   - id
+// # HTTP form data:
+//   - series-identifier : Series id.
+//   - title             : Video title.
 //
-// HTTP response JSON contents:
+// # HTTP response JSON contents:
 //   - status_code   : HTTP status code.
 //   - error_code    : If error, gives in-house error code for debugging. (not implemented yet)
 //   - message       : If error, message detailing the error.
-//   - data          : id, title
 func PostVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
-	var uploadDirectory string = path.Join(*appDirectory, "storage", "videos")
 	var video types.Video
 
 	// Error handling if form data exceeds 1GB
@@ -145,24 +165,24 @@ func PostVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, 
 	video.SeriesId = r.FormValue("series-identifier")
 	video.Title = r.FormValue("title")
 
+	uploadDirectory := path.Join(*appDirectory, "storage", "videos")
 	utilities.HandleVideoUpload(handler, &video, database, &uploadDirectory)
 
 	responses.Status{
-		StatusCode: 200,
-		Data:       video,
+		StatusCode: 201,
 	}.ToClient(w)
 	return
 }
 
 // Deletes a video from the database and file system.
 //
-// Specifications:
-//   - Method        : DELETE
-//   - Endpoint      : api/v1/videos
-//   - Authorization : False
+// # Specifications:
+//   - Method   : DELETE
+//   - Endpoint : api/v1/videos/{id}
+//   - Auth?    : False
 //
-// HTTP request query parameters:
-//   - id            : Required.
+// # HTTP request query parameters:
+//   - id : Video id
 func DeleteVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	var fileName string
 	parameters := mux.Vars(r)
@@ -183,7 +203,7 @@ func DeleteVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB
 		return
 	}
 
-	if err := os.Remove(path.Join("./storage/videos", fileName)); err != nil {
+	if err := os.Remove(path.Join(*appDirectory, "storage", "videos", fileName)); err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
 			defer database.Close()
 			log.Fatalf("ERR : %v", err)

@@ -22,12 +22,12 @@ import (
 
 // Returns the covers stored in the database and file-system.
 //
-// Specifications:
+// # Specifications:
 //   - Method        : GET
 //   - Endpoint      : api/v1/covers
 //   - Authorization : False
 //
-// HTTP request query parameters (Required that user queries with one of these):
+// # HTTP request query parameters (Required that user queries with one of these):
 //   - id            : Matches provided id with cover, falls back to placeholder if fails.
 //   - s             : Matches provided series id with cover, falls back to placeholder if fails.
 func GetCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
@@ -184,7 +184,7 @@ func PostCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, 
 	}
 
 	responses.Status{
-		StatusCode: 200,
+		StatusCode: 201,
 		Data:       cover,
 	}.ToClient(w)
 }
@@ -204,7 +204,6 @@ func PostCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, 
 //   - error_code    : If error, gives in-house error code for debugging. (not implemented yet)
 //   - message       : If error, message detailing the error.
 func DeleteCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
-
 	var fileName string
 
 	id, ok := mux.Vars(r)["id"]

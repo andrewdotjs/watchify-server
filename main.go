@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -21,14 +20,12 @@ import (
 
 func main() {
 	const PORT int = 8080
-	var database *sql.DB
-	var router *mux.Router
-	var appDirectory string
 
 	// Do server initialization
-	appDirectory = utilities.InitializeServer()
-	database = utilities.InitializeDatabase(&appDirectory)
-	router = mux.NewRouter()
+	appDirectory := utilities.InitializeServer()
+	database := utilities.InitializeDatabase(&appDirectory)
+
+	router := mux.NewRouter()
 
 	// Video collection
 	router.HandleFunc("/api/v1/videos/{id}", func(w http.ResponseWriter, r *http.Request) {
@@ -101,7 +98,7 @@ func main() {
 	go func() {
 		if err := server.ListenAndServe(); err == http.ErrServerClosed {
 			fmt.Println("")
-			log.Println("SYS : Recieved shutdown signal, starting shutdown procedure.")
+			log.Println("SYS : Received shutdown signal, starting shutdown procedure.")
 		} else if err != nil {
 			fmt.Println("")
 			log.Printf("ERR : %v", err)

@@ -148,7 +148,7 @@ func PostSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.DB,
 	}
 
 	responses.Status{
-		StatusCode: 200,
+		StatusCode: 201,
 		Data:       series,
 	}.ToClient(w)
 }
