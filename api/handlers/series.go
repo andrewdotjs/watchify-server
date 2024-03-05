@@ -17,15 +17,15 @@ import (
 
 // Gets and returns an array of series stored in the database.
 //
-// Specifications:
+// # Specifications:
 //   - Method      : GET
 //   - Endpoint    : /series/{id}
 //   - Auth?       : False
 //
-// HTTP request path parameters:
+// # HTTP request path parameters:
 //   - id          : REQUIRED. Will match provided id with series with same id, fails if not exists.
 //
-// HTTP response JSON contents:
+// # HTTP response JSON contents:
 //   - status_code : HTTP status code.
 //   - error_code  : If error, gives in-house error code for debugging. (not implemented yet)
 //   - message     : If error, Message detailing the error.
@@ -94,17 +94,17 @@ func GetAllSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.D
 // Uploads a series, its episodes, and its cover to the database and stores them within the
 // storage folder.
 //
-// Specifications:
+// # Specifications:
 //   - Method      : POST
 //   - Endpoint    : /series
 //   - Auth?       : False
 //
-// HTTP request multipart form:
+// # HTTP request multipart form:
 //   - video-files : REQUIRED. Uploaded video files.
 //   - name        : REQUIRED. Name of the soon-to-be uploaded series.
 //   - description : REQUIRED. Description of the series.
 //
-// HTTP response JSON contents:
+// # HTTP response JSON contents:
 //   - status_code : HTTP status code.
 //   - error_code  : If error, gives in-house error code for debugging. (not implemented yet)
 //   - message     : If error, Message detailing the error.
@@ -153,15 +153,15 @@ func PostSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.DB,
 
 // Deletes a series, its episodes, and its cover from the database and storage folders.
 //
-// Specifications:
+// # Specifications:
 //   - Method      : DELETE
 //   - Endpoint    : /series/{id}
 //   - Auth?       : False
 //
-// Possible path parameters:
+// # Possible path parameters:
 //   - id          : REQUIRED. Series id.
 //
-// HTTP response JSON contents:
+// # HTTP response JSON contents:
 //   - status_code : HTTP status code.
 //   - error_code  : If error, gives in-house error code for debugging. (not implemented yet)
 //   - message     : If error, Message detailing the error.

@@ -17,12 +17,12 @@ import (
 
 // Returns a video stream to the client using the id.
 //
-// Specifications:
+// # Specifications:
 //   - Method   : GET
 //   - Endpoint : /stream/{id}
 //   - Auth?    : False
 //
-// HTTP request path parameters:
+// # HTTP request path parameters:
 //   - id       : REQUIRED. Video id.
 func StreamHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	var fileName string

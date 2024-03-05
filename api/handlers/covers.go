@@ -197,15 +197,15 @@ func PostCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, 
 
 // Deletes a cover from the database and file system.
 //
-// Specifications:
+// # Specifications:
 //   - Method      : DELETE
 //   - Endpoint    : /cover/{id}
 //   - Auth?       : False
 //
-// HTTP request path parameters:
+// # HTTP request path parameters:
 //   - id          : REQUIRED. Cover id.
 //
-// HTTP response JSON contents:
+// # HTTP response JSON contents:
 //   - status_code : HTTP status code.
 //   - error_code  : If error, gives in-house error code for debugging. (not implemented yet)
 //   - message     : If error, message detailing the error.
