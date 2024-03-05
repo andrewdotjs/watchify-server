@@ -49,24 +49,11 @@ func main() {
 		handlers.StreamHandler(w, r, database, &appDirectory)
 	}).Methods("GET")
 
-	// Cover collection
-	router.HandleFunc("/api/v1/covers/{id}", func(w http.ResponseWriter, r *http.Request) {
-		handlers.GetCoverHandler(w, r, database, &appDirectory)
-	}).Methods("GET")
-
-	router.HandleFunc("/api/v1/covers/{id}", func(w http.ResponseWriter, r *http.Request) {
-		handlers.DeleteCoverHandler(w, r, database, &appDirectory)
-	}).Methods("DELETE")
-
-	router.HandleFunc("/api/v1/covers", func(w http.ResponseWriter, r *http.Request) {
-		handlers.GetDefaultCoverHandler(w, r, database, &appDirectory)
-	}).Methods("GET")
-
-	router.HandleFunc("/api/v1/covers", func(w http.ResponseWriter, r *http.Request) {
-		handlers.PostCoverHandler(w, r, database, &appDirectory)
-	}).Methods("POST")
-
 	// Series collection
+	router.HandleFunc("/api/v1/series/cover/{id}", func(w http.ResponseWriter, r *http.Request) {
+		handlers.GetSeriesCoverHandler(w, r, database, &appDirectory)
+	}).Methods("GET")
+
 	router.HandleFunc("/api/v1/series/{id}", func(w http.ResponseWriter, r *http.Request) {
 		handlers.GetSeriesHandler(w, r, database)
 	}).Methods("GET")
