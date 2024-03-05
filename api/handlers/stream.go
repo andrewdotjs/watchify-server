@@ -18,12 +18,12 @@ import (
 // Returns a video stream to the client using the id.
 //
 // Specifications:
-//   - Method        : GET
-//   - Endpoint      : api/v1/videos/stream
-//   - Authorization : False
+//   - Method   : GET
+//   - Endpoint : /stream/{id}
+//   - Auth?    : False
 //
-// HTTP request query parameters:
-//   - id            : Required.
+// HTTP request path parameters:
+//   - id       : REQUIRED. Video id.
 func StreamHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	var fileName string
 
@@ -80,9 +80,10 @@ func StreamHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, app
 		// Seek to the specified position and stream the partial content
 		videoFile.Seek(start, 0)
 		http.ServeContent(w, r, filePath, fileInfo.ModTime(), videoFile)
-	} else {
-		// If no Range header is present, serve the entire file
-		w.Header().Set("Content-Length", fmt.Sprintf("%d", fileSize))
-		http.ServeContent(w, r, filePath, fileInfo.ModTime(), videoFile)
+		return
 	}
+
+	// If no Range header is present, serve the entire file
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", fileSize))
+	http.ServeContent(w, r, filePath, fileInfo.ModTime(), videoFile)
 }

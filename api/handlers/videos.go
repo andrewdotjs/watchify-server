@@ -18,20 +18,18 @@ import (
 // Allows the client to retrieve the details of a specific uploaded video via passed in id.
 //
 // # Specifications:
-//   - Method        : GET
-//   - Endpoint      : api/v1/videos/{id}
-//   - Authorization : False
+//   - Method      : GET
+//   - Endpoint    : /videos/{id}
+//   - Auth?       : False
 //
 // # HTTP request path parameters:
-//   - id
-//
-// # HTTP query parameters are not required.
+//   - id          : REQUIRED. Video id.
 //
 // # HTTP response JSON contents:
-//   - status_code   : HTTP status code.
-//   - error_code    : If error, gives in-house error code for debugging. (not implemented yet)
-//   - message       : If error, message detailing the error.
-//   - data          : id, series_id, title (if empty, json data is empty)
+//   - status_code : HTTP status code.
+//   - error_code  : If error, gives in-house error code for debugging. (not implemented yet)
+//   - message     : If error, message detailing the error.
+//   - data        : id, series_id, title (if empty, json data is empty)
 func GetVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 	parameters := mux.Vars(r)
 	id := parameters["id"]
@@ -60,17 +58,15 @@ func GetVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 // Allows the client to retrieve the details of a specific uploaded video via passed in id.
 //
 // # Specifications:
-//   - Method        : GET
-//   - Endpoint      : api/v1/videos
-//   - Authorization : False
-//
-// # HTTP request path parameters are not required.
+//   - Method      : GET
+//   - Endpoint    : /videos
+//   - Auth?       : False
 //
 // # HTTP query parameters:
-//   - limit      : Limit of how many videos to return at once.
-//   - pagination : Offset of query to allow for pages in client. offset = limit(page - 1).
-//   - sort       : Sorts it either ascending it descending.
-//   - search     : Hard searches for video by title.
+//   - limit       : OPTIONAL. Limit of how many videos to return at once.
+//   - pagination  : OPTIONAL. Offset of query to allow for pages in client. offset = limit(page - 1).
+//   - sort        : OPTIONAL. Sorts it either ascending it descending.
+//   - search      : OPTIONAL. Hard searches for video by title.
 //
 // # HTTP response JSON contents:
 //   - status_code : HTTP status code.
@@ -126,18 +122,18 @@ func GetAllVideosHandler(w http.ResponseWriter, r *http.Request, database *sql.D
 // the database.
 //
 // # Specifications:
-//   - Method        : GET
-//   - Endpoint      : api/v1/videos
-//   - Auth?         : False
+//   - Method      : POST
+//   - Endpoint    : /videos
+//   - Auth?       : False
 //
 // # HTTP form data:
-//   - series-identifier : Series id.
-//   - title             : Video title.
+//   - series-id   : REQUIRED. Series id.
+//   - title       : REQUIRED. Video title.
 //
 // # HTTP response JSON contents:
-//   - status_code   : HTTP status code.
-//   - error_code    : If error, gives in-house error code for debugging. (not implemented yet)
-//   - message       : If error, message detailing the error.
+//   - status_code : HTTP status code.
+//   - error_code  : If error, gives in-house error code for debugging. (not implemented yet)
+//   - message     : If error, message detailing the error.
 func PostVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	var video types.Video
 
@@ -162,7 +158,7 @@ func PostVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, 
 
 	defer file.Close()
 
-	video.SeriesId = r.FormValue("series-identifier")
+	video.SeriesId = r.FormValue("series-id")
 	video.Title = r.FormValue("title")
 
 	uploadDirectory := path.Join(*appDirectory, "storage", "videos")
@@ -178,11 +174,11 @@ func PostVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, 
 //
 // # Specifications:
 //   - Method   : DELETE
-//   - Endpoint : api/v1/videos/{id}
+//   - Endpoint : /videos/{id}
 //   - Auth?    : False
 //
 // # HTTP request query parameters:
-//   - id : Video id
+//   - id : REQUIRED. Video id
 func DeleteVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	var fileName string
 	parameters := mux.Vars(r)

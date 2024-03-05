@@ -16,6 +16,9 @@ import (
 	"github.com/google/uuid"
 )
 
+// This takes a video file and stores it in the file system and database.
+//
+// This function does not return anything.
 func HandleVideoUpload(uploadedFile *multipart.FileHeader, video *types.Video, database *sql.DB, uploadDirectory *string) {
 	var uploadPath string
 	var err error
@@ -69,4 +72,11 @@ func HandleVideoUpload(uploadedFile *multipart.FileHeader, video *types.Video, d
 		defer database.Close()
 		log.Fatalf("ERR : %v", err)
 	}
+}
+
+// This takes a cover file and stores it in the file system and database.
+//
+// This function does not return anything.
+func HandleCoverUpload(uploadedFile *multipart.FileHeader, video *types.Video, database *sql.DB, uploadDirectory *string) {
+
 }

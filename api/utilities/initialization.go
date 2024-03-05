@@ -9,6 +9,9 @@ import (
 	"path/filepath"
 )
 
+// Initializes the database by ensuring that the database file and
+// needed tables are all present and ready to be used during the server's
+// runtime. Returns the database as a pointer to an sql.DB struct.
 func InitializeDatabase(appDirectory *string) *sql.DB {
 	databaseDirectory := path.Join(*appDirectory, "db", "app.db")
 
@@ -18,6 +21,7 @@ func InitializeDatabase(appDirectory *string) *sql.DB {
 	}
 
 	if err := database.Ping(); err != nil {
+		defer database.Close()
 		log.Fatalf("ERR : %v", err)
 	}
 
@@ -34,6 +38,7 @@ func InitializeDatabase(appDirectory *string) *sql.DB {
     );
   `)
 	if err != nil {
+		defer database.Close()
 		log.Fatalf("ERR : %v", err)
 	}
 
@@ -46,6 +51,7 @@ func InitializeDatabase(appDirectory *string) *sql.DB {
 		);
 	`)
 	if err != nil {
+		defer database.Close()
 		log.Fatalf("ERR : %v", err)
 	}
 
@@ -60,12 +66,16 @@ func InitializeDatabase(appDirectory *string) *sql.DB {
 		);
 	`)
 	if err != nil {
+		defer database.Close()
 		log.Fatalf("ERR : %v", err)
 	}
 
 	return database
 }
 
+// Initializes the server by ensuring that the needed directories are
+// present during the server's runtime. returns the path of the
+// running executable's directory.
 func InitializeServer() string {
 	permissions := fs.FileMode(0770) // Linux octal permissions
 

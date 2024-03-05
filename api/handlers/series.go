@@ -18,20 +18,18 @@ import (
 // Gets and returns an array of series stored in the database.
 //
 // Specifications:
-//   - Method        : GET
-//   - Endpoint      : api/v1/series
-//   - Authorization : False
+//   - Method      : GET
+//   - Endpoint    : /series/{id}
+//   - Auth?       : False
 //
-// HTTP request query parameters:
-//   - id            : Optional. Will match provided id with series with same id, fails if not exists.
-//   - limit         : Optional. Overrides the default limit 30 for returned rows.
-//   - search        : Optional. Does a hard search for a specific series.
+// HTTP request path parameters:
+//   - id          : REQUIRED. Will match provided id with series with same id, fails if not exists.
 //
 // HTTP response JSON contents:
-//   - status_code   : HTTP status code.
-//   - error_code    : If error, gives in-house error code for debugging. (not implemented yet)
-//   - message       : If error, Message detailing the error.
-//   - data          : Series contents, each returning id, episode count, title, description.
+//   - status_code : HTTP status code.
+//   - error_code  : If error, gives in-house error code for debugging. (not implemented yet)
+//   - message     : If error, Message detailing the error.
+//   - data        : Series contents, each returning id, episode count, title, description.
 func GetSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 	var series types.Series
 	id := mux.Vars(r)["id"]
@@ -97,20 +95,20 @@ func GetAllSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.D
 // storage folder.
 //
 // Specifications:
-//   - Method        : POST
-//   - Endpoint      : api/v1/series/upload
-//   - Authorization : False
+//   - Method      : POST
+//   - Endpoint    : /series
+//   - Auth?       : False
 //
 // HTTP request multipart form:
-//   - video-files   : Required. Uploaded video files.
-//   - name          : Required. Name of the soon-to-be uploaded series.
-//   - description   : Required. Description of the soon-to-be series.
+//   - video-files : REQUIRED. Uploaded video files.
+//   - name        : REQUIRED. Name of the soon-to-be uploaded series.
+//   - description : REQUIRED. Description of the series.
 //
 // HTTP response JSON contents:
-//   - status_code   : HTTP status code.
-//   - error_code    : If error, gives in-house error code for debugging. (not implemented yet)
-//   - message       : If error, Message detailing the error.
-//   - data          : Series id, title
+//   - status_code : HTTP status code.
+//   - error_code  : If error, gives in-house error code for debugging. (not implemented yet)
+//   - message     : If error, Message detailing the error.
+//   - data        : Series id, title
 func PostSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	var series types.Series
 
@@ -156,22 +154,23 @@ func PostSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.DB,
 // Deletes a series, its episodes, and its cover from the database and storage folders.
 //
 // Specifications:
-//   - Method        : DELETE
-//   - Endpoint      : api/v1/series/delete
-//   - Authorization : False
+//   - Method      : DELETE
+//   - Endpoint    : /series/{id}
+//   - Auth?       : False
 //
-// Possible query parameters:
-//   - id            : required, deletes series, videos, and covers that match the id from both db and storage.
+// Possible path parameters:
+//   - id          : REQUIRED. Series id.
 //
 // HTTP response JSON contents:
-//   - status_code   : HTTP status code.
-//   - error_code    : If error, gives in-house error code for debugging. (not implemented yet)
-//   - message       : If error, Message detailing the error.
+//   - status_code : HTTP status code.
+//   - error_code  : If error, gives in-house error code for debugging. (not implemented yet)
+//   - message     : If error, Message detailing the error.
 func DeleteSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	id := mux.Vars(r)["id"]
 
 	_, err := database.Exec("DELETE FROM series WHERE id=?;", id)
 	if err != nil {
+		defer database.Close()
 		log.Fatalf("ERR : %v", err)
 	}
 

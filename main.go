@@ -84,7 +84,7 @@ func main() {
 	}).Methods("GET")
 
 	// Middleware
-	router.Use(middleware.EndpointLogger)
+	router.Use(middleware.LogEndpoint)
 
 	server := &http.Server{
 		Addr:         "0.0.0.0:" + strconv.Itoa(PORT),

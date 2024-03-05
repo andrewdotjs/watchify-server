@@ -9,5 +9,7 @@ then moving on to the next project (front-end watchify)
 - [ ] Video thumbnails
 - [ ] Users w/ authentication
 - [x] Ensure that endpoints follow REST standard
-- [ ] OpenAPI documentation/implementation
-- [ ] Necessary and in-depth comments
+- [x] Necessary and in-depth comments
+- [ ] Dockerfile
+- [ ] OpenAPI documentation
+- [ ] Add README

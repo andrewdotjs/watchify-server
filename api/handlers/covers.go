@@ -20,16 +20,16 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// Returns the covers stored in the database and file-system.
+// Returns the covers stored in the database and file-system. If none are present,
+// return a placeholder cover.
 //
 // # Specifications:
-//   - Method        : GET
-//   - Endpoint      : api/v1/covers
-//   - Authorization : False
+//   - Method   : GET
+//   - Endpoint : /covers/{id}
+//   - Auth?    : False
 //
-// # HTTP request query parameters (Required that user queries with one of these):
-//   - id            : Matches provided id with cover, falls back to placeholder if fails.
-//   - s             : Matches provided series id with cover, falls back to placeholder if fails.
+// # HTTP request path parameters (Required that user queries with one of these):
+//   - id       : REQUIRED. Cover id.
 func GetCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	var coverFileName string
 
@@ -90,6 +90,12 @@ func GetCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, a
 	}.ToClient(w)
 }
 
+// Returns the covers stored in the database and file-system.
+//
+// # Specifications:
+//   - Method   : GET
+//   - Endpoint : /covers
+//   - Auth?    : False
 func GetDefaultCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	responses.File{
 		FileBuffer: utilities.PlaceholderCover(),
@@ -99,19 +105,19 @@ func GetDefaultCoverHandler(w http.ResponseWriter, r *http.Request, database *sq
 // Allows the user to upload a file to the file system and store its information to
 // the database.
 //
-// Specifications:
-//   - Method        : POST
-//   - Endpoint      : api/v1/covers
-//   - Authorization : False
+// # Specifications:
+//   - Method      : POST
+//   - Endpoint    : /covers
+//   - Auth?       : False
 //
-// HTTP request multipart form:
-//   - series-id     : Id of the series that the user wants to attach the cover to.
+// # HTTP request multipart form:
+//   - series-id   : Id of the series that the user wants to attach the cover to.
 //
-// HTTP response JSON contents:
-//   - status_code   : HTTP status code.
-//   - error_code    : If error, gives in-house error code for debugging. (not implemented yet)
-//   - message       : If error, message detailing the error.
-//   - data          : id, series_id
+// # HTTP response JSON contents:
+//   - status_code : HTTP status code.
+//   - error_code  : If error, gives in-house error code for debugging. (not implemented yet)
+//   - message     : If error, message detailing the error.
+//   - data        : id, series_id
 func PostCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	var cover types.Cover
 
@@ -192,17 +198,17 @@ func PostCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, 
 // Deletes a cover from the database and file system.
 //
 // Specifications:
-//   - Method        : DELETE
-//   - Endpoint      : api/v1/cover/delete
-//   - Authorization : False
+//   - Method      : DELETE
+//   - Endpoint    : /cover/{id}
+//   - Auth?       : False
 //
-// HTTP request query parameters:
-//   - id            :
+// HTTP request path parameters:
+//   - id          : REQUIRED. Cover id.
 //
 // HTTP response JSON contents:
-//   - status_code   : HTTP status code.
-//   - error_code    : If error, gives in-house error code for debugging. (not implemented yet)
-//   - message       : If error, message detailing the error.
+//   - status_code : HTTP status code.
+//   - error_code  : If error, gives in-house error code for debugging. (not implemented yet)
+//   - message     : If error, message detailing the error.
 func DeleteCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	var fileName string
 
