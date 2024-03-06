@@ -75,8 +75,8 @@ func main() {
 
 	server := &http.Server{
 		Addr:         "0.0.0.0:" + strconv.Itoa(PORT),
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Minute,
+		ReadTimeout:  15 * time.Minute,
 		IdleTimeout:  60 * time.Second,
 		Handler:      router,
 	}
