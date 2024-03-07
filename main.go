@@ -54,6 +54,14 @@ func main() {
 		handlers.GetSeriesCoverHandler(w, r, database, &appDirectory)
 	}).Methods("GET")
 
+	router.HandleFunc("/api/v1/series/episodes/{id}", func(w http.ResponseWriter, r *http.Request) {
+		handlers.GetAllEpisodesHandler(w, r, database)
+	}).Methods("GET")
+
+	router.HandleFunc("/api/v1/series/fromVideo/{id}", func(w http.ResponseWriter, r *http.Request) {
+		handlers.GetSeriesFromVideoHandler(w, r, database)
+	}).Methods("GET")
+
 	router.HandleFunc("/api/v1/series/{id}", func(w http.ResponseWriter, r *http.Request) {
 		handlers.GetSeriesHandler(w, r, database)
 	}).Methods("GET")

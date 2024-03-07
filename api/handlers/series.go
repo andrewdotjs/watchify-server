@@ -55,6 +55,44 @@ func GetSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) 
 	}.ToClient(w)
 }
 
+func GetSeriesFromVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
+	var series types.Series
+	id := mux.Vars(r)["id"]
+
+	err := database.QueryRow("SELECT series_id FROM videos WHERE id=?", id).Scan(&series.Id)
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			defer database.Close()
+			log.Fatalf("ERR : %v", err)
+		}
+
+		responses.Status{
+			StatusCode: 200,
+			Data:       nil,
+		}.ToClient(w)
+		return
+	}
+
+	err = database.QueryRow("SELECT title, description, episodes FROM series WHERE id=?", series.Id).Scan(&series.Id, &series.Title, &series.Description, &series.Episodes)
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			defer database.Close()
+			log.Fatalf("ERR : %v", err)
+		}
+
+		responses.Status{
+			StatusCode: 200,
+			Data:       nil,
+		}.ToClient(w)
+		return
+	}
+
+	responses.Status{
+		StatusCode: 200,
+		Data:       series,
+	}.ToClient(w)
+}
+
 func GetAllSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 	var seriesArray []types.Series
 
@@ -88,6 +126,44 @@ func GetAllSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.D
 	responses.Status{
 		StatusCode: 200,
 		Data:       seriesArray,
+	}.ToClient(w)
+	return
+}
+
+func GetAllEpisodesHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
+	var videos []types.Video
+	id := mux.Vars(r)["id"]
+
+	rows, err := database.Query(`SELECT id, title, episode FROM videos WHERE series_id=?`, id)
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			defer database.Close()
+			log.Fatalf("ERR : %v", err)
+		}
+
+		responses.Status{
+			StatusCode: 200,
+			Data:       nil,
+		}.ToClient(w)
+		return
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var video types.Video
+
+		if err := rows.Scan(&video.Id, &video.Title, &video.Episode); err != nil {
+			defer database.Close()
+			log.Fatalf("ERR : %v", err)
+		}
+
+		videos = append(videos, video)
+	}
+
+	responses.Status{
+		StatusCode: 200,
+		Data:       videos,
 	}.ToClient(w)
 	return
 }
