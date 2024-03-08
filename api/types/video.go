@@ -4,7 +4,7 @@ type Video struct {
 	// Essential video data
 	Id       string `json:"id"`
 	SeriesId string `json:"series_id,omitempty"`
-	Episode  int    `json:"episode_number,omitempty"`
+	Episode  int    `json:"episode,omitempty"`
 	Title    string `json:"title,omitempty"`
 
 	// General data that is useful for debugging.

@@ -23,7 +23,7 @@ import (
 //   - Auth?    : False
 //
 // # HTTP request path parameters:
-//   - id       : REQUIRED. Video id.
+//   - id       : REQUIRED. UUID of the video.
 func StreamHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	var fileName string
 

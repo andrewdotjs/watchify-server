@@ -23,11 +23,10 @@ import (
 //   - Auth?       : False
 //
 // # HTTP request path parameters:
-//   - id          : REQUIRED. Video id.
+//   - id          : REQUIRED. UUID of the video.
 //
 // # HTTP response JSON contents:
 //   - status_code : HTTP status code.
-//   - error_code  : If error, gives in-house error code for debugging. (not implemented yet)
 //   - message     : If error, message detailing the error.
 //   - data        : id, series_id, title (if empty, json data is empty)
 func GetVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
@@ -35,8 +34,16 @@ func GetVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 	id := parameters["id"]
 	video := types.Video{Id: id}
 
-	err := database.QueryRow("SELECT series_id, title FROM videos WHERE id=?;", video.Id).Scan(&video.SeriesId, &video.Title)
-	if err != nil {
+	if err := database.QueryRow(`
+  	SELECT series_id, title
+  	FROM videos
+  	WHERE id=?
+  	`,
+		video.Id,
+	).Scan(
+		&video.SeriesId,
+		&video.Title,
+	); err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			defer database.Close()
 			log.Fatalf("ERR : %v", err)
@@ -70,18 +77,23 @@ func GetVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 //
 // # HTTP response JSON contents:
 //   - status_code : HTTP status code.
-//   - error_code  : If error, gives in-house error code for debugging. (not implemented yet)
 //   - message     : If error, message detailing the error.
 //   - data        : []{id, series_id, title} (if empty, json data is empty)
 func GetAllVideosHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
-	var queryLimit int
 	var videoArray []types.Video
+	var queryLimit int
+	queryLimitParam := r.URL.Query().Get("limit")
 
-	if r.URL.Query().Get("limit") != "" {
-		queryLimit, _ = strconv.Atoi(r.URL.Query().Get("limit"))
+	if queryLimitParam != "" {
+		var err error
+
+		if queryLimit, err = strconv.Atoi(queryLimitParam); err != nil {
+			defer database.Close()
+			log.Fatalf("ERR : %v", err)
+		}
 	}
 
-	if (queryLimit < 1) || (queryLimit > 20) {
+	if !((queryLimit >= 1) && (queryLimit <= 20)) {
 		queryLimit = 20
 	}
 
@@ -132,7 +144,6 @@ func GetAllVideosHandler(w http.ResponseWriter, r *http.Request, database *sql.D
 //
 // # HTTP response JSON contents:
 //   - status_code : HTTP status code.
-//   - error_code  : If error, gives in-house error code for debugging. (not implemented yet)
 //   - message     : If error, message detailing the error.
 func PostVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	var video types.Video
@@ -177,8 +188,8 @@ func PostVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, 
 //   - Endpoint : /videos/{id}
 //   - Auth?    : False
 //
-// # HTTP request query parameters:
-//   - id : REQUIRED. Video id
+// # HTTP request path parameters:
+//   - id : REQUIRED. UUID of the video.
 func DeleteVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	var fileName string
 	parameters := mux.Vars(r)
