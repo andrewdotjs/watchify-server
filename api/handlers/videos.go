@@ -35,7 +35,7 @@ func GetVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 	video := types.Video{Id: id}
 
 	if err := database.QueryRow(`
-  	SELECT series_id, title
+  	SELECT series_id, title, episode
   	FROM videos
   	WHERE id=?
   	`,
@@ -43,6 +43,7 @@ func GetVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 	).Scan(
 		&video.SeriesId,
 		&video.Title,
+		&video.Episode,
 	); err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			defer database.Close()
@@ -54,6 +55,52 @@ func GetVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 			Data:       nil,
 		}.ToClient(w)
 		return
+	}
+
+	rows, err := database.Query(`
+	  SELECT id, episode
+		FROM videos
+		WHERE series_id=?
+		AND (episode=?
+		OR episode=?)
+		`,
+		video.SeriesId,
+		video.Episode-1,
+		video.Episode+1,
+	)
+
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			defer database.Close()
+			log.Fatalf("ERR : %v", err)
+		}
+
+		responses.Status{
+			StatusCode: 200,
+			Data:       video,
+		}.ToClient(w)
+		return
+	}
+
+	for rows.Next() {
+		var id string
+		var episode int
+
+		if err := rows.Scan(
+			&id,
+			&episode,
+		); err != nil {
+			defer database.Close()
+			log.Fatalf("ERR : %v", err)
+		}
+
+		if episode == video.Episode+1 {
+			video.NextEpisode = id
+		}
+
+		if episode == video.Episode-1 {
+			video.PreviousEpisode = id
+		}
 	}
 
 	responses.Status{
