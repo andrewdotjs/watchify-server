@@ -32,9 +32,9 @@ func HandleVideoUpload(uploadedFile *multipart.FileHeader, video *types.Video, d
 	}
 
 	splitFileName = strings.Split(uploadedFile.Filename, ".")
-	video.Episode, err = strconv.Atoi(splitFileName[0])
+	video.EpisodeNumber, err = strconv.Atoi(splitFileName[0])
 	if err != nil {
-		video.Episode = 0
+		video.EpisodeNumber = 0
 	}
 
 	currentTime := time.Now().Format("01-02-2006 15:04:05")
@@ -48,7 +48,7 @@ func HandleVideoUpload(uploadedFile *multipart.FileHeader, video *types.Video, d
 	_, err = database.Exec(`
 	  INSERT INTO videos
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?);
-	`, video.Id, video.SeriesId, video.Episode, video.Title, video.FileName, video.FileExtension, video.UploadDate, video.LastModified) // TODO: Find a way to make this shorter w/o lame formatting
+	`, video.Id, video.SeriesId, video.EpisodeNumber, video.Title, video.FileName, video.FileExtension, video.UploadDate, video.LastModified) // TODO: Find a way to make this shorter w/o lame formatting
 	if err != nil {
 		defer database.Close()
 		log.Fatalf("ERR : %v", err)

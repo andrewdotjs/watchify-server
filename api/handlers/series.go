@@ -64,7 +64,7 @@ func GetSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) 
 				&series.Id,
 				&series.Title,
 				&series.Description,
-				&series.Episodes,
+				&series.EpisodeCount,
 			); err != nil {
 				defer database.Close()
 				log.Fatalf("ERR : %v", err)
@@ -90,7 +90,7 @@ func GetSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) 
 		&series.Id,
 		&series.Title,
 		&series.Description,
-		&series.Episodes,
+		&series.EpisodeCount,
 	); err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			defer database.Close()
@@ -165,7 +165,7 @@ func GetSeriesEpisodesHandler(w http.ResponseWriter, r *http.Request, database *
 		if err := rows.Scan(
 			&video.Id,
 			&video.Title,
-			&video.Episode,
+			&video.EpisodeNumber,
 		); err != nil {
 			defer database.Close()
 			log.Fatalf("ERR : %v", err)
@@ -229,7 +229,7 @@ func PostSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.DB,
 			&uploadDirectory,
 		)
 
-		series.Episodes = index + 1
+		series.EpisodeCount = index + 1
 	}
 
 	uploadDirectory = path.Join(*appDirectory, "storage", "covers")
@@ -250,7 +250,7 @@ func PostSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.DB,
 		series.Id,
 		series.Title,
 		series.Description,
-		series.Episodes,
+		series.EpisodeCount,
 		series.UploadDate,
 		series.LastModified,
 	); err != nil {

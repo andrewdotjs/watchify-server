@@ -2,12 +2,14 @@ package types
 
 type Video struct {
 	// Essential video data
-	Id              string `json:"id"`
-	SeriesId        string `json:"series_id,omitempty"`
-	Episode         int    `json:"episode,omitempty"`
-	Title           string `json:"title,omitempty"`
-	NextEpisode     string `json:"next_episode_id,omitempty"`
-	PreviousEpisode string `json:"previous_episode_id,omitempty"`
+	Id            string `json:"id"`
+	SeriesId      string `json:"series_id,omitempty"`
+	EpisodeNumber int    `json:"episode_number,omitempty"`
+	Title         string `json:"title,omitempty"`
+
+	// Urls for easier app navigation
+	NextEpisode     map[string]string `json:"next_episode,omitempty"`
+	PreviousEpisode map[string]string `json:"previous_episode,omitempty"`
 
 	// General data that is useful for debugging.
 	FileName      string `json:"file_name,omitempty"`
