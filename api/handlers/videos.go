@@ -136,22 +136,24 @@ func GetVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 func GetAllVideosHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 	var videoArray []types.Video
 	var queryLimit int
+
 	queryLimitParam := r.URL.Query().Get("limit")
-
 	if queryLimitParam != "" {
-		var err error
-
-		if queryLimit, err = strconv.Atoi(queryLimitParam); err != nil {
-			defer database.Close()
-			log.Fatalf("ERR : %v", err)
+		if queryLimitTemp, err := strconv.Atoi(queryLimitParam); err != nil {
+			queryLimit = 20
+		} else {
+			queryLimit = queryLimitTemp
 		}
 	}
 
-	if !((queryLimit >= 1) && (queryLimit <= 20)) {
-		queryLimit = 20
-	}
-
-	rows, err := database.Query(`SELECT id, title FROM videos WHERE series_id='' LIMIT ?;`, queryLimit)
+	rows, err := database.Query(`
+	  SELECT id, title
+	  FROM videos
+	  WHERE series_id=''
+	  LIMIT ?
+		`,
+		queryLimit,
+	)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			defer database.Close()
@@ -170,7 +172,10 @@ func GetAllVideosHandler(w http.ResponseWriter, r *http.Request, database *sql.D
 	for rows.Next() {
 		var video types.Video
 
-		if err := rows.Scan(&video.Id, &video.Title); err != nil {
+		if err := rows.Scan(
+			&video.Id,
+			&video.Title,
+		); err != nil {
 			log.Fatalf("ERR : %v", err)
 		}
 
@@ -254,9 +259,14 @@ func DeleteVideoHandler(w http.ResponseWriter, r *http.Request, database *sql.DB
 			StatusCode: 400,
 			Message:    "id is missing in path parameters",
 		}.ToClient(w)
+		return
 	}
 
-	if _, err := database.Exec(`DELETE FROM videos WHERE id=?;`, id); err != nil {
+	if _, err := database.Exec(`
+	  DELETE FROM videos
+		WHERE id=?;
+	  `,
+		id); err != nil {
 		responses.Status{
 			StatusCode: 500,
 			Message:    "Error deleting video information from the database.",

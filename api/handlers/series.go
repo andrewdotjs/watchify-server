@@ -110,7 +110,7 @@ func GetSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) 
 	}.ToClient(w)
 }
 
-// Gets and returns an array of series stored in the database.
+// Gets and returns an array of episodes of a series stored in the database.
 //
 // # Specifications:
 //   - Method      : GET
@@ -221,14 +221,7 @@ func PostSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.DB,
 	// Handle upload for every file that was passed in the form.
 	for index, uploadedFile := range uploadedVideos {
 		video := types.Video{SeriesId: series.Id}
-
-		utilities.HandleVideoUpload(
-			uploadedFile,
-			&video,
-			database,
-			&uploadDirectory,
-		)
-
+		utilities.HandleVideoUpload(uploadedFile, &video, database, &uploadDirectory)
 		series.EpisodeCount = index + 1
 	}
 
@@ -245,7 +238,7 @@ func PostSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.DB,
 
 	if _, err := database.Exec(`
    	INSERT INTO series
-   	VALUES (?, ?, ?, ?, ?, ?);
+   	VALUES (?, ?, ?, ?, ?, ?)
     `,
 		series.Id,
 		series.Title,

@@ -45,11 +45,19 @@ func HandleVideoUpload(uploadedFile *multipart.FileHeader, video *types.Video, d
 	video.UploadDate = currentTime
 	video.LastModified = currentTime
 
-	_, err = database.Exec(`
+	if _, err = database.Exec(`
 	  INSERT INTO videos
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?);
-	`, video.Id, video.SeriesId, video.EpisodeNumber, video.Title, video.FileName, video.FileExtension, video.UploadDate, video.LastModified) // TODO: Find a way to make this shorter w/o lame formatting
-	if err != nil {
+		`,
+		video.Id,
+		video.SeriesId,
+		video.EpisodeNumber,
+		video.Title,
+		video.FileName,
+		video.FileExtension,
+		video.UploadDate,
+		video.LastModified,
+	); err != nil {
 		defer database.Close()
 		log.Fatalf("ERR : %v", err)
 	}
@@ -96,8 +104,15 @@ func HandleCoverUpload(uploadedFile *multipart.FileHeader, cover *types.Cover, d
 	cover.FileName = fmt.Sprintf("%s.%s", id, strings.Split(uploadedFile.Filename, ".")[1])
 	cover.UploadDate = time.Now().Format("2006-01-02 15:04:05")
 
-	_, err := database.Exec(`INSERT INTO covers VALUES (?, ?, ?, ?);`, cover.Id, cover.SeriesId, cover.FileName, cover.UploadDate)
-	if err != nil {
+	if _, err := database.Exec(`
+	  INSERT INTO covers
+		VALUES (?, ?, ?, ?)
+		`,
+		cover.Id,
+		cover.SeriesId,
+		cover.FileName,
+		cover.UploadDate,
+	); err != nil {
 		defer database.Close()
 		log.Fatalf("ERR : %v", err)
 	}

@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/andrewdotjs/watchify-server/api/responses"
 	"github.com/andrewdotjs/watchify-server/api/utilities"
 	"github.com/gorilla/mux"
 )
@@ -26,26 +25,25 @@ import (
 //   - id       : REQUIRED. UUID of the video.
 func StreamHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	var fileName string
+	id := mux.Vars(r)["id"]
 
-	parameters := mux.Vars(r)
-	id, ok := parameters["id"]
-	if !ok {
-		responses.Status{
-			StatusCode: 400,
-			Message:    "id is missing from path parameters",
-		}.ToClient(w)
+	if err := database.QueryRow(`
+	  SELECT file_name
+		FROM videos
+		WHERE id=?
+		`,
+		id,
+	).Scan(
+		&fileName,
+	); err != nil {
+		w.WriteHeader(500)
 		return
 	}
-
-	err := database.QueryRow("SELECT file_name FROM videos WHERE id=?", id).Scan(&fileName)
 
 	filePath := path.Join(*appDirectory, "storage", "videos", fileName)
 	videoFile, err := os.Open(filePath)
 	if err != nil {
-		responses.Status{
-			StatusCode: 500,
-			Message:    "Error opening video file.",
-		}.ToClient(w)
+		w.WriteHeader(500)
 		return
 	}
 
@@ -54,28 +52,21 @@ func StreamHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, app
 	// Get file information
 	fileInfo, err := videoFile.Stat()
 	if err != nil {
-		responses.Status{
-			StatusCode: 500,
-			Message:    "Error getting video file information.",
-		}.ToClient(w)
+		w.WriteHeader(500)
 		return
 	}
-
-	// Get total file size
-	fileSize := fileInfo.Size()
 
 	w.Header().Set("Content-Type", "video/mp4")
 
 	// Parse the Range header to determine the requested byte range
-	rangeHeader := r.Header.Get("Range")
-	if rangeHeader != "" {
+	if rangeHeader := r.Header.Get("Range"); rangeHeader != "" {
 		ranges := strings.SplitN(rangeHeader[6:], "-", 2)
 		start, _ := strconv.ParseInt(ranges[0], 10, 64)
 		CHUNK_SIZE := math.Pow(10, 6)
 
 		// Set the appropriate headers for partial content
-		w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, utilities.Minimum((int(start)+int(CHUNK_SIZE)), (int(fileSize)-1)), fileSize))
-		w.Header().Set("Content-Length", fmt.Sprintf("%d", fileSize-start))
+		w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, utilities.Minimum((int(start)+int(CHUNK_SIZE)), (int(fileInfo.Size())-1)), fileInfo.Size()))
+		w.Header().Set("Content-Length", fmt.Sprintf("%d", fileInfo.Size()-start))
 
 		// Seek to the specified position and stream the partial content
 		videoFile.Seek(start, 0)
@@ -84,6 +75,6 @@ func StreamHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, app
 	}
 
 	// If no Range header is present, serve the entire file
-	w.Header().Set("Content-Length", fmt.Sprintf("%d", fileSize))
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
 	http.ServeContent(w, r, filePath, fileInfo.ModTime(), videoFile)
 }
