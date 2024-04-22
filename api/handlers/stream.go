@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/andrewdotjs/watchify-server/api/utilities"
-	"github.com/gorilla/mux"
 )
 
 // Returns a video stream to the client using the id.
@@ -25,7 +24,7 @@ import (
 //   - id       : REQUIRED. UUID of the video.
 func StreamHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	var fileName string
-	id := mux.Vars(r)["id"]
+	id := r.PathValue("id")
 
 	if err := database.QueryRow(`
 	  SELECT file_name

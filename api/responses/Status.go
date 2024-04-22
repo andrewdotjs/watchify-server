@@ -7,9 +7,9 @@ import (
 )
 
 type Status struct {
-	StatusCode int    `json:"status_code"`
-	Message    string `json:"message,omitempty"`
-	Data       any    `json:"data,omitempty"`
+	Status  int    `json:"status"`
+	Message string `json:"message,omitempty"`
+	Data    any    `json:"data,omitempty"`
 }
 
 // Takes a built Status struct and converts it into JSON-compatible bytes
@@ -22,6 +22,7 @@ func (status Status) ToClient(w http.ResponseWriter) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status.StatusCode)
+	w.Header().Set("Access-Control-Allow-Origin", "*") // TODO: Research and change this to the client's ip or something
+	w.WriteHeader(status.Status)
 	w.Write(json)
 }

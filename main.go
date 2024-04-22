@@ -14,7 +14,6 @@ import (
 	"github.com/andrewdotjs/watchify-server/api/middleware"
 	"github.com/andrewdotjs/watchify-server/api/utilities"
 
-	"github.com/gorilla/mux"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -23,66 +22,66 @@ func main() {
 
 	// Do server initialization
 	appDirectory := utilities.InitializeServer()
+	logFile, logPath := utilities.InitializeLogger()
 	database := utilities.InitializeDatabase(&appDirectory)
-
-	router := mux.NewRouter()
+	mux := http.NewServeMux()
 
 	// Video collection
-	router.HandleFunc("/api/v1/videos/{id}", func(w http.ResponseWriter, r *http.Request) {
-		handlers.GetVideoHandler(w, r, database)
-	}).Methods("GET")
+	mux.Handle("GET /api/v1/videos/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handlers.ReadVideo(w, r, database)
+	}))
 
-	router.HandleFunc("/api/v1/videos/{id}", func(w http.ResponseWriter, r *http.Request) {
-		handlers.DeleteVideoHandler(w, r, database, &appDirectory)
-	}).Methods("DELETE")
+	mux.Handle("DELETE /api/v1/videos/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handlers.DeleteVideo(w, r, database, &appDirectory)
+	}))
 
-	router.HandleFunc("/api/v1/videos", func(w http.ResponseWriter, r *http.Request) {
-		handlers.GetAllVideosHandler(w, r, database)
-	}).Methods("GET")
+	mux.Handle("POST /api/v1/videos", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handlers.CreateVideo(w, r, database, &appDirectory)
+	}))
 
-	router.HandleFunc("/api/v1/videos", func(w http.ResponseWriter, r *http.Request) {
-		handlers.PostVideoHandler(w, r, database, &appDirectory)
-	}).Methods("POST")
+	mux.Handle("GET /api/v1/videos", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handlers.ReadVideo(w, r, database)
+	}))
 
 	// Stream collection
-	router.HandleFunc("/api/v1/stream/{id}", func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("GET /api/v1/stream/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handlers.StreamHandler(w, r, database, &appDirectory)
-	}).Methods("GET")
+	}))
 
 	// Series collection
-	router.HandleFunc("/api/v1/series/{id}/episodes", func(w http.ResponseWriter, r *http.Request) {
-		handlers.GetSeriesEpisodesHandler(w, r, database)
-	}).Methods("GET")
+	mux.Handle("GET /api/v1/series/{id}/episodes", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handlers.ReadSeriesEpisodes(w, r, database)
+	}))
 
-	router.HandleFunc("/api/v1/series/{id}/cover", func(w http.ResponseWriter, r *http.Request) {
-		handlers.GetCoverHandler(w, r, database, &appDirectory)
-	}).Methods("GET")
+	mux.Handle("GET /api/v1/series/{id}/cover", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handlers.ReadCover(w, r, database, &appDirectory)
+	}))
 
-	router.HandleFunc("/api/v1/series/{id}", func(w http.ResponseWriter, r *http.Request) {
-		handlers.GetSeriesHandler(w, r, database)
-	}).Methods("GET")
+	mux.Handle("GET /api/v1/series/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handlers.ReadSeries(w, r, database)
+	}))
 
-	router.HandleFunc("/api/v1/series/{id}", func(w http.ResponseWriter, r *http.Request) {
-		handlers.DeleteSeriesHandler(w, r, database, &appDirectory)
-	}).Methods("DELETE")
+	mux.Handle("DELETE /api/v1/series/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handlers.DeleteSeries(w, r, database, &appDirectory)
+	}))
 
-	router.HandleFunc("/api/v1/series", func(w http.ResponseWriter, r *http.Request) {
-		handlers.GetSeriesHandler(w, r, database)
-	}).Methods("GET")
+	mux.Handle("POST /api/v1/series", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handlers.CreateSeries(w, r, database, &appDirectory)
+	}))
 
-	router.HandleFunc("/api/v1/series", func(w http.ResponseWriter, r *http.Request) {
-		handlers.PostSeriesHandler(w, r, database, &appDirectory)
-	}).Methods("POST")
+	mux.Handle("GET /api/v1/series", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handlers.ReadSeries(w, r, database)
+	}))
 
 	// Middleware
-	router.Use(middleware.LogEndpoint)
+	muxHandler := middleware.LogEndpoint(mux)
 
 	server := &http.Server{
 		Addr:         "0.0.0.0:" + strconv.Itoa(PORT),
 		WriteTimeout: 15 * time.Minute,
 		ReadTimeout:  15 * time.Minute,
 		IdleTimeout:  60 * time.Second,
-		Handler:      router,
+		Handler:      muxHandler,
 	}
 
 	// Run in goroutine to not interrupt graceful shutdown procedure.
@@ -106,5 +105,6 @@ func main() {
 	defer database.Close()
 	server.Shutdown(context.Background())
 	log.Println("SYS : Shutting down...")
+	utilities.RenameLogFile(logFile, logPath)
 	os.Exit(0)
 }

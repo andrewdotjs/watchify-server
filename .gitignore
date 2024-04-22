@@ -114,10 +114,11 @@ xcuserdata/
 *.xcscmblueprint
 *.xccheckout
 
-## Watchify tests
+## Watchify
 
 *.db
 *.mp4
 db/
 storage/
+logs/
 watchify-server

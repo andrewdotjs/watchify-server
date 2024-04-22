@@ -26,7 +26,7 @@ func HandleVideoUpload(uploadedFile *multipart.FileHeader, video *types.Video, d
 	var splitFileName []string
 
 	if _, err = os.ReadDir(*uploadDirectory); os.IsNotExist(err) {
-		if err = os.Mkdir(*uploadDirectory, os.FileMode(777)); err != nil {
+		if err = os.Mkdir(*uploadDirectory, os.FileMode(0777)); err != nil {
 			log.Fatalf("ERR : %v", err)
 		}
 	}

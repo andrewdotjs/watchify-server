@@ -10,7 +10,6 @@ import (
 
 	"github.com/andrewdotjs/watchify-server/api/responses"
 	"github.com/andrewdotjs/watchify-server/api/utilities"
-	"github.com/gorilla/mux"
 )
 
 // Returns the covers stored in the database and file-system. If none are present,
@@ -23,9 +22,9 @@ import (
 //
 // # HTTP request path parameters:
 //   - id       : REQUIRED. UUID of the series.
-func GetCoverHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
+func ReadCover(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	var coverFileName string
-	id := mux.Vars(r)["id"]
+	id := r.PathValue("id")
 
 	if id == "" {
 		responses.File{

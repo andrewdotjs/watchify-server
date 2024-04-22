@@ -13,7 +13,6 @@ import (
 	"github.com/andrewdotjs/watchify-server/api/types"
 	"github.com/andrewdotjs/watchify-server/api/utilities"
 	"github.com/google/uuid"
-	"github.com/gorilla/mux"
 )
 
 // Gets and returns an array of series stored in the database.
@@ -30,9 +29,9 @@ import (
 //   - status_code : HTTP status code.
 //   - message     : If error, Message detailing the error.
 //   - data        : Series contents, each returning id, episode count, title, description.
-func GetSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
+func ReadSeries(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 	var series types.Series
-	id := mux.Vars(r)["id"]
+	id := r.PathValue("id")
 
 	if id == "" {
 		var seriesArray []types.Series
@@ -49,8 +48,8 @@ func GetSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) 
 			}
 
 			responses.Status{
-				StatusCode: 200,
-				Data:       nil,
+				Status: 200,
+				Data:   nil,
 			}.ToClient(w)
 			return
 		}
@@ -74,8 +73,8 @@ func GetSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) 
 		}
 
 		responses.Status{
-			StatusCode: 200,
-			Data:       seriesArray,
+			Status: 200,
+			Data:   seriesArray,
 		}.ToClient(w)
 		return
 	}
@@ -98,15 +97,15 @@ func GetSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) 
 		}
 
 		responses.Status{
-			StatusCode: 400,
-			Message:    "No series found with given id.",
+			Status:  400,
+			Message: "No series found with given id.",
 		}.ToClient(w)
 		return
 	}
 
 	responses.Status{
-		StatusCode: 200,
-		Data:       series,
+		Status: 200,
+		Data:   series,
 	}.ToClient(w)
 }
 
@@ -124,14 +123,14 @@ func GetSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) 
 //   - status_code : HTTP status code.
 //   - message     : If error, Message detailing the error.
 //   - data        : Series episodes, each returning id, episode.
-func GetSeriesEpisodesHandler(w http.ResponseWriter, r *http.Request, database *sql.DB) {
+func ReadSeriesEpisodes(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 	var videos []types.Video
-	id := mux.Vars(r)["id"]
+	id := r.PathValue("id")
 
 	if id == "" {
 		responses.Status{
-			StatusCode: 400,
-			Message:    "Id not passed in as a path parameter.",
+			Status:  400,
+			Message: "Id not passed in as a path parameter.",
 		}.ToClient(w)
 		return
 	}
@@ -151,8 +150,8 @@ func GetSeriesEpisodesHandler(w http.ResponseWriter, r *http.Request, database *
 		}
 
 		responses.Status{
-			StatusCode: 200,
-			Data:       nil,
+			Status: 200,
+			Data:   nil,
 		}.ToClient(w)
 		return
 	}
@@ -175,8 +174,8 @@ func GetSeriesEpisodesHandler(w http.ResponseWriter, r *http.Request, database *
 	}
 
 	responses.Status{
-		StatusCode: 200,
-		Data:       videos,
+		Status: 200,
+		Data:   videos,
 	}.ToClient(w)
 }
 
@@ -197,11 +196,11 @@ func GetSeriesEpisodesHandler(w http.ResponseWriter, r *http.Request, database *
 //   - status_code : HTTP status code.
 //   - message     : If error, Message detailing the error.
 //   - data        : Series id, title
-func PostSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
+func CreateSeries(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	if err := r.ParseMultipartForm(1 << 40); err != nil { // Error handling if form data exceeds 1TB
 		responses.Status{
-			StatusCode: 400,
-			Message:    "Did the file exceed 1TB?",
+			Status:  400,
+			Message: "Did the file exceed 1TB?",
 		}.ToClient(w)
 		return
 	}
@@ -251,8 +250,8 @@ func PostSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.DB,
 	}
 
 	responses.Status{
-		StatusCode: 201,
-		Data:       series,
+		Status: 201,
+		Data:   series,
 	}.ToClient(w)
 }
 
@@ -269,9 +268,9 @@ func PostSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.DB,
 // # HTTP response JSON contents:
 //   - status_code : HTTP status code.
 //   - message     : If error, Message detailing the error.
-func DeleteSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
+func DeleteSeries(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	var coverFileName string
-	id := mux.Vars(r)["id"]
+	id := r.PathValue("id")
 
 	// Stage 1, find all videos that are in the to-be-deleted series and delete them.
 	rows, err := database.Query(`
@@ -305,8 +304,8 @@ func DeleteSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.D
 			}
 
 			responses.Status{
-				StatusCode: 500,
-				Message:    "Error removing video file.",
+				Status:  500,
+				Message: "Error removing video file.",
 			}.ToClient(w)
 			return
 		}
@@ -353,6 +352,6 @@ func DeleteSeriesHandler(w http.ResponseWriter, r *http.Request, database *sql.D
 	}
 
 	responses.Status{
-		StatusCode: 200,
+		Status: 200,
 	}.ToClient(w)
 }
