@@ -12,6 +12,7 @@ type File struct {
 // ResponseWriter.
 func (file File) ToClient(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "image/jpeg")
+	w.Header().Set("Content-Language", "en")
 	w.WriteHeader(file.StatusCode)
 	w.Write(file.FileBuffer)
 }

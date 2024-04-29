@@ -22,7 +22,7 @@ func (status Status) ToClient(w http.ResponseWriter) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*") // TODO: Research and change this to the client's ip or something
+	w.Header().Set("Content-Language", "en")
 	w.WriteHeader(status.Status)
 	w.Write(json)
 }

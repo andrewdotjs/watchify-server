@@ -3,6 +3,7 @@ package series
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -128,9 +129,12 @@ func ReadSeries(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 //   - data        : Series id, title
 func CreateSeries(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	if err := r.ParseMultipartForm(1 << 40); err != nil { // Error handling if form data exceeds 1TB
-		responses.Status{
-			Status:  400,
-			Message: "Did the file exceed 1TB?",
+		log.Printf("%v", err)
+		responses.Error{
+			Type:   "null",
+			Title:  "Incomplete request",
+			Status: 400,
+			Detail: "The upload form exceeded 1TB",
 		}.ToClient(w)
 		return
 	}
@@ -138,6 +142,54 @@ func CreateSeries(w http.ResponseWriter, r *http.Request, database *sql.DB, appD
 	uploadDirectory := path.Join(*appDirectory, "storage", "videos")
 	currentTime := time.Now().Format("01-02-2006 15:04:05")
 	uploadedVideos := r.MultipartForm.File["videos"]
+
+	uploadedCover := r.MultipartForm.File["cover"]
+	if len(uploadedCover) == 0 {
+		log.Print("Received no cover in request.")
+		responses.Error{
+			Type:   "null",
+			Title:  "Bad request",
+			Status: 400,
+			Detail: "No uploaded cover present in form",
+		}.ToClient(w)
+		return
+	}
+	//if err != nil {
+	//	var response responses.Error
+	//
+	//	switch {
+	//	case errors.Is(err, http.ErrMissingFile):
+	//		log.Print("Received no cover in request.")
+	//		response = responses.Error{
+	//			Type:   "null",
+	//			Title:  "Bad request",
+	//			Status: 400,
+	//			Detail: "No uploaded cover present in form",
+	//		}
+	//	default:
+	//		log.Print(err)
+	//		response = responses.Error{
+	//			Type:   "null",
+	//			Title:  "Unaccounted Error",
+	//			Status: 500,
+	//			Detail: fmt.Sprintf("%v", err),
+	//		}
+	//	}
+	//
+	//	response.ToClient(w)
+	//	return
+	//}
+
+	if len(uploadedVideos) == 0 {
+		log.Print("Received no videos in request.")
+		responses.Error{
+			Type:   "null",
+			Title:  "Bad request",
+			Status: 400,
+			Detail: "No uploaded videos present in form",
+		}.ToClient(w)
+		return
+	}
 
 	series := types.Series{
 		Id:           uuid.New().String(),
@@ -155,8 +207,9 @@ func CreateSeries(w http.ResponseWriter, r *http.Request, database *sql.DB, appD
 	}
 
 	uploadDirectory = path.Join(*appDirectory, "storage", "covers")
-	uploadedCover := r.MultipartForm.File["cover"]
 	cover := types.Cover{SeriesId: series.Id}
+
+	fmt.Print(uploadedCover)
 
 	utilities.HandleCoverUpload(
 		uploadedCover[0],

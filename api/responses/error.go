@@ -20,7 +20,6 @@ func (errorMessage Error) ToClient(w http.ResponseWriter) {
 	} else {
 		w.Header().Set("Content-Type", "application/problem+json")
 		w.Header().Set("Content-Language", "en")
-		w.Header().Set("Access-Control-Allow-Origin", "*") // TODO: Research and change this to the client's ip or something
 		w.WriteHeader(errorMessage.Status)
 		w.Write(json)
 	}

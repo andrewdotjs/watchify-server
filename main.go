@@ -76,6 +76,7 @@ func main() {
 
 	// Middleware
 	muxHandler := middleware.LogEndpoint(mux)
+	muxHandler = middleware.CORS(muxHandler)
 
 	server := &http.Server{
 		Addr:         "0.0.0.0:" + strconv.Itoa(PORT),
