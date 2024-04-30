@@ -93,13 +93,22 @@ func ReadSeries(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 		&series.EpisodeCount,
 	); err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
-			defer database.Close()
-			log.Fatalf("ERR : %v", err)
+			responses.Error{
+				Type:     "null",
+				Title:    "Unknown Error",
+				Status:   500,
+				Detail:   fmt.Sprintf("%v", err),
+				Instance: r.URL.Path,
+			}.ToClient(w)
+			return
 		}
 
-		responses.Status{
-			Status:  400,
-			Message: "No series found with given id.",
+		responses.Error{
+			Type:     "null",
+			Title:    "Data not found",
+			Status:   400,
+			Detail:   "No series could be found with the given id.",
+			Instance: r.URL.Path,
 		}.ToClient(w)
 		return
 	}

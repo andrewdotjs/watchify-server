@@ -55,7 +55,7 @@ func main() {
 	}))
 
 	mux.Handle("GET /api/v1/series/{id}/cover", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handlers.ReadCover(w, r, database, &appDirectory)
+		series.ReadCover(w, r, database, &appDirectory)
 	}))
 
 	mux.Handle("GET /api/v1/series/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
