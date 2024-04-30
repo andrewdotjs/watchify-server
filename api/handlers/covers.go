@@ -12,6 +12,9 @@ import (
 	"github.com/andrewdotjs/watchify-server/api/utilities"
 )
 
+// Use this function to add a new cover to a series
+func CreateCover(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirectory *string) {}
+
 // Returns the covers stored in the database and file-system. If none are present,
 // return a placeholder cover.
 //
@@ -76,3 +79,9 @@ func ReadCover(w http.ResponseWriter, r *http.Request, database *sql.DB, appDire
 		FileBuffer: buffer,
 	}.ToClient(w)
 }
+
+// use this route to update a cover for a series
+func UpdateCover(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirectory *string) {}
+
+// use this route to delete a cover from a series.
+func DeleteCover(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirectory *string) {}

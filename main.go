@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/andrewdotjs/watchify-server/api/handlers"
+	"github.com/andrewdotjs/watchify-server/api/handlers/series"
 	"github.com/andrewdotjs/watchify-server/api/middleware"
 	"github.com/andrewdotjs/watchify-server/api/utilities"
 
@@ -50,7 +51,7 @@ func main() {
 
 	// Series collection
 	mux.Handle("GET /api/v1/series/{id}/episodes", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handlers.ReadSeriesEpisodes(w, r, database)
+		series.ReadEpisodes(w, r, database)
 	}))
 
 	mux.Handle("GET /api/v1/series/{id}/cover", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -58,19 +59,19 @@ func main() {
 	}))
 
 	mux.Handle("GET /api/v1/series/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handlers.ReadSeries(w, r, database)
+		series.ReadSeries(w, r, database)
 	}))
 
 	mux.Handle("DELETE /api/v1/series/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handlers.DeleteSeries(w, r, database, &appDirectory)
+		series.DeleteSeries(w, r, database, &appDirectory)
 	}))
 
 	mux.Handle("POST /api/v1/series", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handlers.CreateSeries(w, r, database, &appDirectory)
+		series.CreateSeries(w, r, database, &appDirectory)
 	}))
 
 	mux.Handle("GET /api/v1/series", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handlers.ReadSeries(w, r, database)
+		series.ReadSeries(w, r, database)
 	}))
 
 	// Middleware

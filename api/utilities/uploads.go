@@ -138,3 +138,6 @@ func HandleCoverUpload(uploadedFile *multipart.FileHeader, cover *types.Cover, d
 		log.Fatalf("ERR : %v", err)
 	}
 }
+
+func HandleSplashUpload(uploadedFile *multipart.FileHeader, splash *types.Splash, db *sql.DB, uploadDirectory *string) {
+}
