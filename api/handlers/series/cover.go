@@ -22,8 +22,9 @@ import (
 // # HTTP request path parameters:
 //   - id       : REQUIRED. UUID of the series.
 func ReadCover(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
+	var id string = r.PathValue("id")
+	var uploadDirectory string = path.Join(*appDirectory, "storage", "covers")
 	var coverFileName string
-	id := r.PathValue("id")
 
 	if id == "" {
 		log.Print("SYS : Did not find id. Sending placeholder cover.")
@@ -35,7 +36,8 @@ func ReadCover(w http.ResponseWriter, r *http.Request, database *sql.DB, appDire
 		return
 	}
 
-	if err := database.QueryRow(`
+	if err := database.QueryRow(
+		`
 	  SELECT file_name
 		FROM covers
 		WHERE series_id=?
@@ -52,8 +54,6 @@ func ReadCover(w http.ResponseWriter, r *http.Request, database *sql.DB, appDire
 		}.ToClient(w)
 		return
 	}
-
-	uploadDirectory := path.Join(*appDirectory, "storage", "covers")
 
 	if buffer, err := os.ReadFile(path.Join(uploadDirectory, coverFileName)); err != nil {
 		log.Printf("ERR : Error while querying covers. %v", err)

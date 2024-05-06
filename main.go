@@ -62,6 +62,10 @@ func main() {
 		series.ReadSeries(w, r, database)
 	}))
 
+	mux.Handle("PUT /api/v1/series/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		series.UpdateSeries(w, r, database, &appDirectory)
+	}))
+
 	mux.Handle("DELETE /api/v1/series/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		series.DeleteSeries(w, r, database, &appDirectory)
 	}))

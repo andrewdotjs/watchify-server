@@ -1,26 +1,26 @@
 package types
 
 type Series struct {
-	Id           string `json:"id"`                      // uuid of the series
-	Title        string `json:"title,omitempty"`         // title of the series
-	Description  string `json:"description,omitempty"`   // description of the series
-	EpisodeCount int    `json:"episode_count,omitempty"` // episode count of the series
+	Id           string `json:"id"`                    // uuid of the series
+	Title        string `json:"title,omitempty"`       // title of the series
+	Description  string `json:"description,omitempty"` // description of the series
+	EpisodeCount int    `json:"-"`                     // episode count of the series
 
-	Episodes map[string]any `json:"episodes_url,omitempty"`
+	Episodes map[string]any `json:"episodes,omitempty"`
 	// 	EXAMPLE:
 	//  "episodes": {
 	//		"count": 0,
 	//		"url": "example.com/api/v1/{series_id}/episodes"
 	//  }
 
-	Cover map[string]any `json:"cover_url,omitempty"`
+	Cover map[string]any `json:"cover,omitempty"`
 	// 	EXAMPLE:
 	//  "cover": {
 	//		"exists": true,
 	//		"url": "example.com/api/v1/{series_id}/cover"
 	//  }
 
-	Splash map[string]any `json:"splash_url,omitempty"`
+	Splash map[string]any `json:"splash,omitempty"`
 	// 	EXAMPLE:
 	//  "splash": {
 	//		"exists": true,
