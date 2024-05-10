@@ -565,9 +565,9 @@ func UpdateSeries(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirecto
 		}
 
 		response.ToClient(w)
-	} else {
-		responses.Status{
-			Status: 200,
-		}.ToClient(w)
 	}
+
+	responses.Status{
+		Status: 200,
+	}.ToClient(w)
 }
