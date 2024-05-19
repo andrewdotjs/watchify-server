@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 	"time"
 
-	"github.com/andrewdotjs/watchify-server/api/database"
 	"github.com/andrewdotjs/watchify-server/api/responses"
 	"github.com/andrewdotjs/watchify-server/api/types"
 	"github.com/andrewdotjs/watchify-server/api/utilities"
@@ -518,7 +518,7 @@ func UpdateSeries(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirecto
 		FROM
 			videos
 		WHERE
-			series_id=?
+			series_id = ?
 		`,
 		id,
 	).Scan(&episodeCount); err != nil {
@@ -540,16 +540,38 @@ func UpdateSeries(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirecto
 		return
 	}
 
+	description := r.FormValue("description")
+
+	if len(description) > 1000 {
+		responses.Error{
+			Type:     "null",
+			Title:    "Invalid Request",
+			Status:   400,
+			Detail:   "The description was larger than 1000 bytes. In UTF-8 encoding, the usual English characters are 1 byte each.",
+			Instance: r.URL.Path,
+		}.ToClient(w)
+		return
+	}
+
+	description = strings.Replace(description, "\n", "&#13;", -1) // Cleanse 1
+	description = strings.Replace(description, "\"", `\\"`, -1)   // Cleanse 2
+
 	updatedSeries := types.Series{
 		Id:           id,
 		Title:        r.FormValue("title"),
-		Description:  r.FormValue("description"),
+		Description:  description,
 		EpisodeCount: episodeCount,
 		LastModified: time.Now().Format("01-02-2006 15:04:05"),
 	}
 
-	statement, values := database.UpdateQueryBuilder("series", updatedSeries)
-	if _, err := db.Exec(statement, values...); err != nil {
+	if _, err := db.Exec(
+		"UPDATE series SET title = ?, description = ?, episodes = ?, last_modified = ? WHERE id = ?",
+		updatedSeries.Title,
+		updatedSeries.Description,
+		updatedSeries.EpisodeCount,
+		updatedSeries.LastModified,
+		updatedSeries.Id,
+	); err != nil {
 		var response responses.Error
 
 		switch {

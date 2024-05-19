@@ -9,7 +9,7 @@ import (
 )
 
 func InitializeLogger() (*os.File, string) {
-	var currentDate string = time.Now().Format("2006-01-02 15:04:05")
+	var currentDate string = time.Now().Format("2006-01-02 15-04-05")
 
 	executablePath, err := os.Executable()
 	if err != nil {
