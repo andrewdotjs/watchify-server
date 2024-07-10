@@ -78,6 +78,10 @@ func main() {
 		series.ReadSeries(w, r, database)
 	}))
 
+	// Movies collection
+
+
+
 	// Middleware
 	muxHandler := middleware.LogEndpoint(mux)
 	muxHandler = middleware.CORS(muxHandler)

@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/andrewdotjs/watchify-server/api/utilities"
+	"github.com/andrewdotjs/watchify-server/api/libs/server"
 )
 
 // Returns a video stream to the client using the id.
@@ -64,7 +64,7 @@ func StreamHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, app
 		CHUNK_SIZE := math.Pow(10, 6)
 
 		// Set the appropriate headers for partial content
-		w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, utilities.Minimum((int(start)+int(CHUNK_SIZE)), (int(fileInfo.Size())-1)), fileInfo.Size()))
+		w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, server.Minimum((int(start)+int(CHUNK_SIZE)), (int(fileInfo.Size())-1)), fileInfo.Size()))
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", fileInfo.Size()-start))
 
 		// Seek to the specified position and stream the partial content

@@ -1,4 +1,4 @@
-package utilities
+package server
 
 // Returns the bytes of a placeholder cover that I got from placehold.co
 //

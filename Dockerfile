@@ -1,5 +1,5 @@
 FROM golang:latest
-EXPOSE 8080
+EXPOSE 80
 
 WORKDIR /app
 COPY . .

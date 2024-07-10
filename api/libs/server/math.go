@@ -1,4 +1,4 @@
-package utilities
+package server
 
 // Returns the minimum of two integers. Needed this for
 // video streaming chunk calculations.

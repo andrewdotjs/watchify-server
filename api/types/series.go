@@ -2,9 +2,11 @@ package types
 
 type Series struct {
 	Id           string `json:"id"`                    // uuid of the series
+	CoverId      string `json:"cover_id"`
 	Title        string `json:"title,omitempty"`       // title of the series
 	Description  string `json:"description,omitempty"` // description of the series
 	EpisodeCount int    `json:"-"`                     // episode count of the series
+	Hidden       bool `json:"hidden"`
 
 	Episodes map[string]any `json:"episodes,omitempty"`
 	// 	EXAMPLE:

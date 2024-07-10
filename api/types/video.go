@@ -12,7 +12,6 @@ type Video struct {
 	PreviousEpisode map[string]string `json:"previous_episode,omitempty"`
 
 	// General data that is useful for debugging.
-	FileName      string `json:"file_name,omitempty"`
 	FileExtension string `json:"file_extension,omitempty"`
 	UploadDate    string `json:"upload_date,omitempty"`
 	LastModified  string `json:"last_modified,omitempty"`

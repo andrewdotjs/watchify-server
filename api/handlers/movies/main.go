@@ -1,4 +1,4 @@
-package series
+package movies
 
 import (
 	"database/sql"
@@ -31,7 +31,7 @@ import (
 //   - status_code : HTTP status code.
 //   - message     : If error, Message detailing the error.
 //   - data        : Series contents, each returning id, episode count, title, description.
-func ReadSeries(w http.ResponseWriter, r *http.Request, database *sql.DB) {
+func ReadMovie(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 	var id string = r.PathValue("id")
 	var series types.Series
 
@@ -42,9 +42,9 @@ func ReadSeries(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 		rows, err := database.Query(
 			`
 			SELECT
-				id, title, description, episodes
+				id, title, description
 			FROM
-				series
+				movies
 			LIMIT
 				30
     	`,
@@ -72,31 +72,20 @@ func ReadSeries(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 
 		defer rows.Close()
 		for rows.Next() {
-			var series types.Series
+			var movie types.Movie
 
 			if err := rows.Scan(
-				&series.Id,
-				&series.Title,
-				&series.Description,
-				&series.EpisodeCount,
+				&movie.Id,
+				&movie.Title,
+				&movie.Description,
 			); err != nil {
 				defer database.Close()
 				log.Fatalf("ERR : %v", err)
 			}
 
-			series.Episodes = map[string]any{
-				"count":    series.EpisodeCount,
-				"url": ("/api/v1/series/" + series.Id + "/episodes"),
-			}
-
 			series.Cover = map[string]any{
 				"exists":   true,
-				"url": ("/api/v1/series/" + series.Id + "/cover"),
-			}
-
-			series.Splash = map[string]any{
-				"exists":   false,
-				"url": ("/api/v1/series/" + series.Id + "/splash"),
+				"url": ("/api/v1/movies/" + series.Id + "/cover"),
 			}
 
 			seriesArray = append(seriesArray, series)
@@ -114,7 +103,7 @@ func ReadSeries(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 		SELECT
 			id, title, description, episodes
 		FROM
-			series
+			movies
 		WHERE
 			id=?
 		`,
@@ -186,7 +175,7 @@ func ReadSeries(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 //   - status_code : HTTP status code.
 //   - message     : If error, Message detailing the error.
 //   - data        : Series id, title
-func CreateSeries(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
+func CreateMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	if err := r.ParseMultipartForm(1 << 40); err != nil { // Error handling if form data exceeds 1TB
 		log.Printf("%v", err)
 		responses.Error{
@@ -213,31 +202,6 @@ func CreateSeries(w http.ResponseWriter, r *http.Request, database *sql.DB, appD
 		}.ToClient(w)
 		return
 	}
-	//if err != nil {
-	//	var response responses.Error
-	//
-	//	switch {
-	//	case errors.Is(err, http.ErrMissingFile):
-	//		log.Print("Received no cover in request.")
-	//		response = responses.Error{
-	//			Type:   "null",
-	//			Title:  "Bad request",
-	//			Status: 400,
-	//			Detail: "No uploaded cover present in form",
-	//		}
-	//	default:
-	//		log.Print(err)
-	//		response = responses.Error{
-	//			Type:   "null",
-	//			Title:  "Unaccounted Error",
-	//			Status: 500,
-	//			Detail: fmt.Sprintf("%v", err),
-	//		}
-	//	}
-	//
-	//	response.ToClient(w)
-	//	return
-	//}
 
 	if len(uploadedVideos) == 0 {
 		log.Print("Received no videos in request.")
@@ -308,7 +272,7 @@ func CreateSeries(w http.ResponseWriter, r *http.Request, database *sql.DB, appD
 // # HTTP response JSON contents:
 //   - status_code : HTTP status code.
 //   - message     : If error, Message detailing the error.
-func DeleteSeries(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
+func DeleteMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	var coverFileName string
 	id := r.PathValue("id")
 
@@ -495,7 +459,7 @@ func DeleteSeries(w http.ResponseWriter, r *http.Request, database *sql.DB, appD
 	}.ToClient(w)
 }
 
-func UpdateSeries(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirectory *string) {
+func UpdateMovie(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirectory *string) {
 	id := r.PathValue("id")
 	var episodeCount int
 
