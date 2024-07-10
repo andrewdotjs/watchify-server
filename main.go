@@ -10,10 +10,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/andrewdotjs/watchify-server/api/handlers"
-	"github.com/andrewdotjs/watchify-server/api/handlers/series"
-	"github.com/andrewdotjs/watchify-server/api/middleware"
-	"github.com/andrewdotjs/watchify-server/api/utilities"
+	"github.com/andrewdotjs/watchify-server/internal/functions"
+	"github.com/andrewdotjs/watchify-server/internal/handlers"
+	"github.com/andrewdotjs/watchify-server/internal/handlers/movies"
+	"github.com/andrewdotjs/watchify-server/internal/handlers/series"
+	"github.com/andrewdotjs/watchify-server/internal/middleware"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -22,9 +23,9 @@ func main() {
 	const PORT int = 80
 
 	// Do server initialization
-	appDirectory := utilities.InitializeServer()
-	logFile, logPath := utilities.InitializeLogger()
-	database := utilities.InitializeDatabase(&appDirectory)
+	appDirectory := functions.InitializeServer()
+	logFile, logPath := functions.InitializeLogger()
+	database := functions.InitializeDatabase(&appDirectory)
 	mux := http.NewServeMux()
 
 	// Video collection
@@ -80,7 +81,29 @@ func main() {
 
 	// Movies collection
 
+	mux.Handle("GET /api/v1/movies/{id}/cover", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		movies.ReadCover(w, r, database, &appDirectory)
+	}))
 
+	mux.Handle("GET /api/v1/movies/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		movies.ReadMovie(w, r, database)
+	}))
+
+	mux.Handle("PUT /api/v1/movies/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		movies.UpdateMovie(w, r, database, &appDirectory)
+	}))
+
+	mux.Handle("DELETE /api/v1/movies/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		movies.DeleteMovie(w, r, database, &appDirectory)
+	}))
+
+	mux.Handle("POST /api/v1/movies", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		movies.CreateMovie(w, r, database, &appDirectory)
+	}))
+
+	mux.Handle("GET /api/v1/movies", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		movies.ReadMovie(w, r, database)
+	}))
 
 	// Middleware
 	muxHandler := middleware.LogEndpoint(mux)
@@ -115,6 +138,6 @@ func main() {
 	defer database.Close()
 	server.Shutdown(context.Background())
 	log.Println("SYS : Shutting down...")
-	utilities.RenameLogFile(logFile, logPath)
+	functions.RenameLogFile(logFile, logPath)
 	os.Exit(0)
 }

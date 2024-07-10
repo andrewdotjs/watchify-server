@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/andrewdotjs/watchify-server/api/libs/server"
+	"github.com/andrewdotjs/watchify-server/internal/functions"
 )
 
 // Returns a video stream to the client using the id.
@@ -23,19 +23,20 @@ import (
 // # HTTP request path parameters:
 //   - id       : REQUIRED. UUID of the video.
 func StreamHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
+	var id string = r.PathValue("id")
+	var streamTypeQuery string = r.URL.Query().Get("type")
+	var streamType string = "series_episodes"
+	var query string
 	var fileName string
-	id := r.PathValue("id")
 
-	if err := database.QueryRow(`
-	  SELECT file_name
-		FROM videos
-		WHERE id=?
-		`,
-		id,
-	).Scan(
-		&fileName,
-	); err != nil {
+	if streamTypeQuery == "movie" {
+		streamType = "movies"
+	}
+
+	query = "SELECT file_name FROM " + streamType + " WHERE id=?"
+	if err := database.QueryRow(query, id).Scan(&fileName); err != nil {
 		w.WriteHeader(500)
+		w.Write([]byte(fmt.Sprintf("%v", err)))
 		return
 	}
 
@@ -64,8 +65,16 @@ func StreamHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, app
 		CHUNK_SIZE := math.Pow(10, 6)
 
 		// Set the appropriate headers for partial content
-		w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, server.Minimum((int(start)+int(CHUNK_SIZE)), (int(fileInfo.Size())-1)), fileInfo.Size()))
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", fileInfo.Size()-start))
+		w.Header().Set(
+			"Content-Range",
+			fmt.Sprintf(
+				"bytes %d-%d/%d",
+				start,
+				functions.Minimum((int(start)+int(CHUNK_SIZE)), int(fileInfo.Size())-1),
+				fileInfo.Size(),
+			),
+		)
 
 		// Seek to the specified position and stream the partial content
 		videoFile.Seek(start, 0)

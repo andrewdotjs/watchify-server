@@ -7,8 +7,8 @@ import (
 	"os"
 	"path"
 
-	"github.com/andrewdotjs/watchify-server/api/responses"
-	"github.com/andrewdotjs/watchify-server/api/utilities"
+	"github.com/andrewdotjs/watchify-server/internal"
+	"github.com/andrewdotjs/watchify-server/internal/responses"
 )
 
 // Returns the covers stored in the database and file-system. If none are present,
@@ -30,8 +30,8 @@ func ReadCover(w http.ResponseWriter, r *http.Request, database *sql.DB, appDire
 		log.Print("SYS : Did not find id. Sending placeholder cover.")
 
 		responses.File{
-			StatusCode: 400,
-			FileBuffer: utilities.PlaceholderCover(),
+			StatusCode: 200,
+			FileBuffer: internal.PlaceholderCover(),
 		}.ToClient(w)
 		return
 	}
@@ -39,7 +39,7 @@ func ReadCover(w http.ResponseWriter, r *http.Request, database *sql.DB, appDire
 	if err := database.QueryRow(
 		`
 	  SELECT file_name
-		FROM covers
+		FROM movie_covers
 		WHERE movie_id=?
 		`,
 		id,
@@ -49,8 +49,8 @@ func ReadCover(w http.ResponseWriter, r *http.Request, database *sql.DB, appDire
 		log.Printf("ERR : Error while querying covers, sending placeholder cover. %v", err)
 
 		responses.File{
-			StatusCode: 500,
-			FileBuffer: utilities.PlaceholderCover(),
+			StatusCode: 200,
+			FileBuffer: internal.PlaceholderCover(),
 		}.ToClient(w)
 		return
 	}
@@ -59,8 +59,8 @@ func ReadCover(w http.ResponseWriter, r *http.Request, database *sql.DB, appDire
 		log.Printf("ERR : Error while querying covers. %v", err)
 
 		responses.File{
-			StatusCode: 500,
-			FileBuffer: utilities.PlaceholderCover(),
+			StatusCode: 200,
+			FileBuffer: internal.PlaceholderCover(),
 		}.ToClient(w)
 	} else {
 		responses.File{
@@ -72,7 +72,7 @@ func ReadCover(w http.ResponseWriter, r *http.Request, database *sql.DB, appDire
 
 // use this route to update a cover for a series
 func UpdateCover(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirectory *string) {
-	id := r.PathValue("id")
+	var id string = r.PathValue("id")
 
 	if id == "" {
 		log.Print("SYS : Did not find id.")
@@ -88,6 +88,3 @@ func UpdateCover(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirector
 	}
 
 }
-
-// use this route to delete a cover from a series.
-func DeleteCover(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirectory *string) {}

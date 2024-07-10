@@ -1,4 +1,4 @@
-package server
+package functions
 
 import (
 	"database/sql"
@@ -26,54 +26,78 @@ func InitializeDatabase(appDirectory *string) *sql.DB {
 	}
 
 	if _, err := database.Exec(`
-    CREATE TABLE IF NOT EXISTS videos (
-      id TEXT PRIMARY KEY,
-      series_id TEXT,
-      episode INTEGER,
-      title TEXT NOT NULL,
-			file_extension TEXT NOT NULL,
-			upload_date TEXT NOT NULL,
-			last_modified TEXT NOT NULL
-    );
-  `); err != nil {
-		defer database.Close()
-		log.Fatalf("ERR : %v", err)
-	}
-
-	if _, err := database.Exec(`
-		CREATE TABLE IF NOT EXISTS covers (
-			id TEXT PRIMARY KEY,
-			series_id TEXT NOT NULL UNIQUE,
-			file_name TEXT NOT NULL UNIQUE,
-			upload_date TEXT NOT NULL
-		);
-	`); err != nil {
-		defer database.Close()
-		log.Fatalf("ERR : %v", err)
-	}
-
-	if _, err = database.Exec(`
 		CREATE TABLE IF NOT EXISTS series (
 			id TEXT PRIMARY KEY,
 			title TEXT NOT NULL,
 			description TEXT NOT NULL,
+			episode_count INTEGER NOT NULL,
+			hidden BOOLEAN NOT NULL,
+			upload_date TEXT NOT NULL,
+			last_modified TEXT NOT NULL
+		);
+
+    CREATE TABLE IF NOT EXISTS series_episodes (
+      id TEXT PRIMARY KEY,
+      series_id TEXT,
+      episode_number INTEGER,
+      title TEXT,
+			description TEXT,
+			file_name TEXT NOT NULL,
+			file_extension TEXT NOT NULL,
+			upload_date TEXT NOT NULL,
+			last_modified TEXT NOT NULL
+    );
+
+		CREATE TABLE IF NOT EXISTS series_covers (
+			id TEXT PRIMARY KEY,
+			series_id TEXT NOT NULL UNIQUE,
+			file_extension TEXT NOT NULL,
+			file_name TEXT NOT NULL UNIQUE,
+			upload_date TEXT NOT NULL
+		);
+
+		CREATE TABLE IF NOT EXISTS series_comments (
+			id TEXT PRIMARY KEY,
+			series_id TEXT NOT NULL,
+			user_id TEXT NOT NULL,
+			message TEXT NOT NULL,
 			episodes INTEGER NOT NULL,
+			likes INTEGER NOT NULL,
+			dislikes INTEGER NOT NULL,
 			upload_date TEXT NOT NULL,
 		  last_modified TEXT NOT NULL
 		);
-	`); err != nil {
-		defer database.Close()
-		log.Fatalf("ERR : %v", err)
-	}
 
-	if _, err := database.Exec(`
-    CREATE TABLE IF NOT EXISTS movies (
+		CREATE TABLE IF NOT EXISTS movies (
       id TEXT PRIMARY KEY,
 			title TEXT NOT NULL,
 			description TEXT NOT NULL,
+			hidden BOOLEAN NOT NULL,
+			file_extension TEXT NOT NULL,
+			file_name TEXT NOT NULL,
 			upload_date TEXT NOT NULL,
 		  last_modified TEXT NOT NULL
     );
+
+		CREATE TABLE IF NOT EXISTS movie_covers (
+			id TEXT PRIMARY KEY,
+			movie_id TEXT NOT NULL,
+			user_id TEXT,
+			file_extension TEXT NOT NULL,
+			file_name TEXT NOT NULL,
+			upload_date TEXT NOT NULL
+		);
+
+		CREATE TABLE IF NOT EXISTS movie_comments (
+			id TEXT PRIMARY KEY,
+			movie_id TEXT NOT NULL,
+			user_id TEXT NOT NULL,
+			message TEXT NOT NULL,
+			likes INTEGER NOT NULL,
+			dislikes INTEGER NOT NULL,
+			upload_date TEXT NOT NULL,
+			last_modified TEXT NOT NULL
+		)
   `); err != nil {
 		defer database.Close()
 		log.Fatalf("ERR : %v", err)

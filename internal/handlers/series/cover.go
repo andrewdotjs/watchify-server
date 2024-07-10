@@ -7,8 +7,8 @@ import (
 	"os"
 	"path"
 
-	"github.com/andrewdotjs/watchify-server/api/responses"
-	"github.com/andrewdotjs/watchify-server/api/utilities"
+	"github.com/andrewdotjs/watchify-server/internal"
+	"github.com/andrewdotjs/watchify-server/internal/responses"
 )
 
 // Returns the covers stored in the database and file-system. If none are present,
@@ -30,8 +30,8 @@ func ReadCover(w http.ResponseWriter, r *http.Request, database *sql.DB, appDire
 		log.Print("SYS : Did not find id. Sending placeholder cover.")
 
 		responses.File{
-			StatusCode: 400,
-			FileBuffer: utilities.PlaceholderCover(),
+			StatusCode: 200,
+			FileBuffer: internal.PlaceholderCover(),
 		}.ToClient(w)
 		return
 	}
@@ -39,7 +39,7 @@ func ReadCover(w http.ResponseWriter, r *http.Request, database *sql.DB, appDire
 	if err := database.QueryRow(
 		`
 	  SELECT file_name
-		FROM covers
+		FROM series_covers
 		WHERE series_id=?
 		`,
 		id,
@@ -49,8 +49,8 @@ func ReadCover(w http.ResponseWriter, r *http.Request, database *sql.DB, appDire
 		log.Printf("ERR : Error while querying covers, sending placeholder cover. %v", err)
 
 		responses.File{
-			StatusCode: 500,
-			FileBuffer: utilities.PlaceholderCover(),
+			StatusCode: 200,
+			FileBuffer: internal.PlaceholderCover(),
 		}.ToClient(w)
 		return
 	}
@@ -59,8 +59,8 @@ func ReadCover(w http.ResponseWriter, r *http.Request, database *sql.DB, appDire
 		log.Printf("ERR : Error while querying covers. %v", err)
 
 		responses.File{
-			StatusCode: 500,
-			FileBuffer: utilities.PlaceholderCover(),
+			StatusCode: 200,
+			FileBuffer: internal.PlaceholderCover(),
 		}.ToClient(w)
 	} else {
 		responses.File{

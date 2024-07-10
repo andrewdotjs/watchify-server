@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/andrewdotjs/watchify-server/api/responses"
-	"github.com/andrewdotjs/watchify-server/api/types"
+	"github.com/andrewdotjs/watchify-server/internal/responses"
+	"github.com/andrewdotjs/watchify-server/internal/types"
 )
 
 func CreateEpisodes() {}
@@ -27,7 +27,7 @@ func CreateEpisodes() {}
 //   - message     : If error, Message detailing the error.
 //   - data        : Series episodes, each returning id, episode.
 func ReadEpisodes(w http.ResponseWriter, r *http.Request, db *sql.DB) {
-	var videos []types.Video
+	var videos []types.Episode
 	id := r.PathValue("id")
 
 	if id == "" {
@@ -44,9 +44,9 @@ func ReadEpisodes(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	rows, err := db.Query(
 		`
    	SELECT
-			id, title, episode
+			id, episode_number
    	FROM
-			videos
+			series_episodes
    	WHERE
 			series_id=?
     `,
@@ -75,11 +75,10 @@ func ReadEpisodes(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
 	defer rows.Close()
 	for rows.Next() {
-		var video types.Video
+		var video types.Episode
 
 		if err := rows.Scan(
 			&video.Id,
-			&video.Title,
 			&video.EpisodeNumber,
 		); err != nil {
 			switch {

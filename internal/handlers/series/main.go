@@ -1,4 +1,4 @@
-package movies
+package series
 
 import (
 	"database/sql"
@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/andrewdotjs/watchify-server/api/responses"
-	"github.com/andrewdotjs/watchify-server/api/types"
-	"github.com/andrewdotjs/watchify-server/api/utilities"
+	"github.com/andrewdotjs/watchify-server/internal/functions"
+	"github.com/andrewdotjs/watchify-server/internal/responses"
+	"github.com/andrewdotjs/watchify-server/internal/types"
 	"github.com/google/uuid"
 )
 
@@ -31,23 +31,40 @@ import (
 //   - status_code : HTTP status code.
 //   - message     : If error, Message detailing the error.
 //   - data        : Series contents, each returning id, episode count, title, description.
-func ReadMovie(w http.ResponseWriter, r *http.Request, database *sql.DB) {
+func ReadSeries(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 	var id string = r.PathValue("id")
+	var orderedBy string = r.URL.Query().Get("orderedBy")
+	var orderedByQuery string
 	var series types.Series
 
 	// Return all series if no ID.
 	if id == "" {
 		var seriesArray []types.Series
 
+		if orderedBy != "" {
+			switch orderedBy {
+			case "upload_date":
+				orderedByQuery = `
+					ORDER BY upload_date DESC
+				`
+			default:
+				orderedByQuery = ""
+			}
+		}
+
 		rows, err := database.Query(
-			`
-			SELECT
-				id, title, description
-			FROM
-				movies
-			LIMIT
-				30
-    	`,
+			fmt.Sprintf(
+				`
+					SELECT
+						id, title, description, episode_count, upload_date, last_modified
+					FROM
+						series
+					%v
+					LIMIT
+						15
+				`,
+				orderedByQuery,
+			),
 		)
 
 		if err != nil {
@@ -72,20 +89,28 @@ func ReadMovie(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 
 		defer rows.Close()
 		for rows.Next() {
-			var movie types.Movie
+			var series types.Series
 
 			if err := rows.Scan(
-				&movie.Id,
-				&movie.Title,
-				&movie.Description,
+				&series.Id,
+				&series.Title,
+				&series.Description,
+				&series.EpisodeCount,
+				&series.UploadDate,
+				&series.LastModified,
 			); err != nil {
 				defer database.Close()
 				log.Fatalf("ERR : %v", err)
 			}
 
+			series.Episodes = map[string]any{
+				"count": series.EpisodeCount,
+				"url":   ("/api/v1/series/" + series.Id + "/episodes"),
+			}
+
 			series.Cover = map[string]any{
-				"exists":   true,
-				"url": ("/api/v1/movies/" + series.Id + "/cover"),
+				"exists": true,
+				"url":    ("/api/v1/series/" + series.Id + "/cover"),
 			}
 
 			seriesArray = append(seriesArray, series)
@@ -101,9 +126,9 @@ func ReadMovie(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 	if err := database.QueryRow(
 		`
 		SELECT
-			id, title, description, episodes
+			id, title, description, episode_count, upload_date, last_modified
 		FROM
-			movies
+			series
 		WHERE
 			id=?
 		`,
@@ -113,6 +138,8 @@ func ReadMovie(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 		&series.Title,
 		&series.Description,
 		&series.EpisodeCount,
+		&series.UploadDate,
+		&series.LastModified,
 	); err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -138,18 +165,13 @@ func ReadMovie(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 
 	// Assemble
 	series.Episodes = map[string]any{
-		"count":    series.EpisodeCount,
-		"url": ("/api/v1/series/" + series.Id + "/episodes"),
+		"count": series.EpisodeCount,
+		"url":   ("/api/v1/series/" + series.Id + "/episodes"),
 	}
 
 	series.Cover = map[string]any{
-		"exists":   true,
-		"url": ("/api/v1/series/" + series.Id + "/cover"),
-	}
-
-	series.Splash = map[string]any{
-		"exists":   false,
-		"url": ("/api/v1/series/" + series.Id + "/splash"),
+		"exists": true,
+		"url":    ("/api/v1/series/" + series.Id + "/cover"),
 	}
 
 	responses.Status{
@@ -175,7 +197,7 @@ func ReadMovie(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 //   - status_code : HTTP status code.
 //   - message     : If error, Message detailing the error.
 //   - data        : Series id, title
-func CreateMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
+func CreateSeries(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	if err := r.ParseMultipartForm(1 << 40); err != nil { // Error handling if form data exceeds 1TB
 		log.Printf("%v", err)
 		responses.Error{
@@ -202,6 +224,31 @@ func CreateMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 		}.ToClient(w)
 		return
 	}
+	//if err != nil {
+	//	var response responses.Error
+	//
+	//	switch {
+	//	case errors.Is(err, http.ErrMissingFile):
+	//		log.Print("Received no cover in request.")
+	//		response = responses.Error{
+	//			Type:   "null",
+	//			Title:  "Bad request",
+	//			Status: 400,
+	//			Detail: "No uploaded cover present in form",
+	//		}
+	//	default:
+	//		log.Print(err)
+	//		response = responses.Error{
+	//			Type:   "null",
+	//			Title:  "Unaccounted Error",
+	//			Status: 500,
+	//			Detail: fmt.Sprintf("%v", err),
+	//		}
+	//	}
+	//
+	//	response.ToClient(w)
+	//	return
+	//}
 
 	if len(uploadedVideos) == 0 {
 		log.Print("Received no videos in request.")
@@ -224,15 +271,15 @@ func CreateMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 
 	// Handle upload for every file that was passed in the form.
 	for index, uploadedFile := range uploadedVideos {
-		video := types.Video{SeriesId: series.Id}
-		utilities.HandleVideoUpload(uploadedFile, &video, database, &uploadDirectory)
+		video := types.Episode{SeriesId: series.Id}
+		functions.SeriesEpisode(uploadedFile, &video, database, &uploadDirectory)
 		series.EpisodeCount = index + 1
 	}
 
 	uploadDirectory = path.Join(*appDirectory, "storage", "covers")
-	cover := types.Cover{SeriesId: series.Id}
+	cover := types.SeriesCover{SeriesId: series.Id}
 
-	utilities.HandleCoverUpload(
+	functions.SeriesCover(
 		uploadedCover[0],
 		&cover,
 		database,
@@ -240,13 +287,16 @@ func CreateMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 	)
 
 	if _, err := database.Exec(`
-   	INSERT INTO series
-   	VALUES (?, ?, ?, ?, ?, ?)
+   	INSERT INTO
+			series
+   	VALUES
+			(?, ?, ?, ?, ?, ?, ?)
     `,
 		series.Id,
 		series.Title,
 		series.Description,
 		series.EpisodeCount,
+		series.Hidden,
 		series.UploadDate,
 		series.LastModified,
 	); err != nil {
@@ -272,7 +322,7 @@ func CreateMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 // # HTTP response JSON contents:
 //   - status_code : HTTP status code.
 //   - message     : If error, Message detailing the error.
-func DeleteMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
+func DeleteSeries(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	var coverFileName string
 	id := r.PathValue("id")
 
@@ -290,9 +340,12 @@ func DeleteMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 	// Stage 1, find all videos that are in the to-be-deleted series and delete them.
 	rows, err := database.Query(
 		`
-  	SELECT file_name
-  	FROM videos
-  	WHERE series_id=?
+  	SELECT
+			file_name
+  	FROM
+			series_episodes
+  	WHERE
+			series_id=?
     `,
 		id,
 	)
@@ -357,8 +410,10 @@ func DeleteMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 
 	if _, err := database.Exec(
 		`
-	  DELETE FROM videos
-		WHERE series_id=?
+	  DELETE FROM
+			series_episodes
+		WHERE
+			series_id=?
 		`,
 		id,
 	); err != nil {
@@ -383,8 +438,10 @@ func DeleteMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 	// Stage 2, delete the cover from the database.
 	if _, err := database.Exec(
 		`
-	  DELETE FROM covers
-	  WHERE series_id=?
+	  DELETE FROM
+			series_covers
+	  WHERE
+			series_id=?
   	`,
 		id,
 	); err != nil {
@@ -431,8 +488,10 @@ func DeleteMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 	// Stage 4, delete the series itself from the database.
 	if _, err := database.Exec(
 		`
-  	DELETE FROM series
-  	WHERE id=?
+  	DELETE FROM
+			series
+  	WHERE
+			id=?
   	`,
 		id,
 	); err != nil {
@@ -459,7 +518,7 @@ func DeleteMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 	}.ToClient(w)
 }
 
-func UpdateMovie(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirectory *string) {
+func UpdateSeries(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirectory *string) {
 	id := r.PathValue("id")
 	var episodeCount int
 
@@ -480,7 +539,7 @@ func UpdateMovie(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirector
 		SELECT
 			COUNT(*) as count
 		FROM
-			videos
+			series_episodes
 		WHERE
 			series_id = ?
 		`,

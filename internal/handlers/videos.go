@@ -7,11 +7,10 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"strconv"
 
-	"github.com/andrewdotjs/watchify-server/api/responses"
-	"github.com/andrewdotjs/watchify-server/api/types"
-	"github.com/andrewdotjs/watchify-server/api/utilities"
+	"github.com/andrewdotjs/watchify-server/internal/functions"
+	"github.com/andrewdotjs/watchify-server/internal/responses"
+	"github.com/andrewdotjs/watchify-server/internal/types"
 )
 
 // Allows the client to retrieve the details of a specific uploaded video via passed in id.
@@ -30,73 +29,30 @@ import (
 //   - data        : id, series_id, title (if empty, json data is empty)
 func ReadVideo(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 	id := r.PathValue("id")
-	video := types.Video{Id: id}
+	video := types.Episode{Id: id}
 
 	if id == "" {
-		var videoArray []types.Video
-		var queryLimit int
-
-		queryLimitParam := r.URL.Query().Get("limit")
-		if queryLimitParam != "" {
-			if queryLimitTemp, err := strconv.Atoi(queryLimitParam); err != nil {
-				queryLimit = 20
-			} else {
-				queryLimit = queryLimitTemp
-			}
-		}
-
-		rows, err := database.Query(`
-			SELECT id, title
-			FROM videos
-			WHERE series_id=''
-			LIMIT ?
-			`,
-			queryLimit,
-		)
-		if err != nil {
-			if !errors.Is(err, sql.ErrNoRows) {
-				defer database.Close()
-				log.Fatalf("ERR : %v", err)
-			}
-
-			responses.Status{
-				Status: 200,
-				Data:   videoArray,
-			}.ToClient(w)
-			return
-		}
-
-		defer rows.Close()
-
-		for rows.Next() {
-			var video types.Video
-
-			if err := rows.Scan(
-				&video.Id,
-				&video.Title,
-			); err != nil {
-				log.Fatalf("ERR : %v", err)
-			}
-
-			videoArray = append(videoArray, video)
-		}
-
-		responses.Status{
-			Status: 200,
-			Data:   videoArray,
+		responses.Error{
+			Type:     "null",
+			Title:    "Invalid API request",
+			Status:   400,
+			Detail:   "No id was provided in the url params.",
+			Instance: r.URL.Path,
 		}.ToClient(w)
 		return
 	}
 
 	if err := database.QueryRow(`
-  	SELECT series_id, title, episode
-  	FROM videos
-  	WHERE id=?
+  	SELECT
+			series_id, episode_number
+  	FROM
+			series_episodes
+  	WHERE
+			id=?
   	`,
 		video.Id,
 	).Scan(
 		&video.SeriesId,
-		&video.Title,
 		&video.EpisodeNumber,
 	); err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
@@ -113,11 +69,14 @@ func ReadVideo(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 
 	if video.SeriesId != "" {
 		rows, err := database.Query(`
-	  SELECT id, episode
-		FROM videos
-		WHERE series_id=?
-		AND (episode=?
-		OR episode=?)
+	  SELECT
+			id, episode_number
+		FROM
+			series_episodes
+		WHERE
+			series_id=?
+		AND
+			(episode_number=? OR episode_number=?)
 		`,
 			video.SeriesId,
 			video.EpisodeNumber-1,
@@ -186,7 +145,7 @@ func ReadVideo(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 //   - status_code : HTTP status code.
 //   - message     : If error, message detailing the error.
 func CreateVideo(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
-	var video types.Video
+	var video types.Episode
 
 	// Error handling if form data exceeds 1GB
 	if err := r.ParseMultipartForm(1 << 30); err != nil {
@@ -210,10 +169,9 @@ func CreateVideo(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 	defer file.Close()
 
 	video.SeriesId = r.FormValue("series-id")
-	video.Title = r.FormValue("title")
 
 	uploadDirectory := path.Join(*appDirectory, "storage", "videos")
-	utilities.HandleVideoUpload(handler, &video, database, &uploadDirectory)
+	functions.SeriesEpisode(handler, &video, database, &uploadDirectory)
 
 	responses.Status{
 		Status: 201,
