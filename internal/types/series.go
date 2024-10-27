@@ -24,8 +24,8 @@ type Series struct {
 	//  }
 
 	// General data that is useful for debugging.
-	UploadDate   string `json:"upload_date,omitempty"`  // upload date of the series.
-	LastModified string `json:"last_modifed,omitempty"` // last modified date of the series.
+	UploadDate   string `json:"upload_date,omitempty"`   // upload date of the series.
+	LastModified string `json:"last_modified,omitempty"` // last modified date of the series.
 }
 
 type Episode struct {

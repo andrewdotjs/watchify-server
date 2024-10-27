@@ -44,17 +44,14 @@ func ReadSeries(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 		if orderedBy != "" {
 			switch orderedBy {
 			case "upload_date":
-				orderedByQuery = `
-					ORDER BY upload_date DESC
-				`
+				orderedByQuery = "ORDER BY upload_date DESC"
 			default:
 				orderedByQuery = ""
 			}
 		}
 
 		rows, err := database.Query(
-			fmt.Sprintf(
-				`
+			fmt.Sprintf(`
 					SELECT
 						id, title, description, episode_count, upload_date, last_modified
 					FROM
@@ -323,8 +320,9 @@ func CreateSeries(w http.ResponseWriter, r *http.Request, database *sql.DB, appD
 //   - status_code : HTTP status code.
 //   - message     : If error, Message detailing the error.
 func DeleteSeries(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
+	var videoStorageDirectory string = path.Join(*appDirectory, "storage", "videos")
+	var id string = r.PathValue("id")
 	var coverFileName string
-	id := r.PathValue("id")
 
 	if id == "" {
 		responses.Error{
@@ -378,9 +376,7 @@ func DeleteSeries(w http.ResponseWriter, r *http.Request, database *sql.DB, appD
 			log.Fatalf("ERR : %v", err)
 		}
 
-		if err := os.Remove(
-			path.Join(*appDirectory, "storage", "videos", videoFileName),
-		); err != nil {
+		if err := os.Remove(path.Join(videoStorageDirectory, videoFileName)); err != nil {
 			var response responses.Error
 
 			switch {
@@ -408,12 +404,11 @@ func DeleteSeries(w http.ResponseWriter, r *http.Request, database *sql.DB, appD
 		}
 	}
 
-	if _, err := database.Exec(
-		`
-	  DELETE FROM
-			series_episodes
-		WHERE
-			series_id=?
+	if _, err := database.Exec(`
+			DELETE FROM
+				series_episodes
+			WHERE
+				series_id=?
 		`,
 		id,
 	); err != nil {
@@ -421,6 +416,7 @@ func DeleteSeries(w http.ResponseWriter, r *http.Request, database *sql.DB, appD
 
 		switch {
 		default:
+			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
 			response = responses.Error{
 				Type:     "null",
 				Title:    "An unknown error has occurred.",
@@ -428,7 +424,6 @@ func DeleteSeries(w http.ResponseWriter, r *http.Request, database *sql.DB, appD
 				Detail:   "Sorry, but this error hasn't been properly logged yet.",
 				Instance: r.URL.Path,
 			}
-			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
 		}
 
 		response.ToClient(w)
@@ -449,6 +444,7 @@ func DeleteSeries(w http.ResponseWriter, r *http.Request, database *sql.DB, appD
 
 		switch {
 		default:
+			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
 			response = responses.Error{
 				Type:     "null",
 				Title:    "An unknown error has occurred.",
@@ -456,7 +452,6 @@ func DeleteSeries(w http.ResponseWriter, r *http.Request, database *sql.DB, appD
 				Detail:   "Sorry, but this error hasn't been properly logged yet.",
 				Instance: r.URL.Path,
 			}
-			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
 		}
 
 		response.ToClient(w)
@@ -471,6 +466,7 @@ func DeleteSeries(w http.ResponseWriter, r *http.Request, database *sql.DB, appD
 
 		switch {
 		default:
+			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
 			response = responses.Error{
 				Type:     "null",
 				Title:    "An unknown error has occurred.",
@@ -478,7 +474,6 @@ func DeleteSeries(w http.ResponseWriter, r *http.Request, database *sql.DB, appD
 				Detail:   "Sorry, but this error hasn't been properly logged yet.",
 				Instance: r.URL.Path,
 			}
-			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
 		}
 
 		response.ToClient(w)
@@ -499,6 +494,7 @@ func DeleteSeries(w http.ResponseWriter, r *http.Request, database *sql.DB, appD
 
 		switch {
 		default:
+			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
 			response = responses.Error{
 				Type:     "null",
 				Title:    "An unknown error has occurred.",
@@ -506,7 +502,6 @@ func DeleteSeries(w http.ResponseWriter, r *http.Request, database *sql.DB, appD
 				Detail:   "Sorry, but this error hasn't been properly logged yet.",
 				Instance: r.URL.Path,
 			}
-			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
 		}
 
 		response.ToClient(w)
@@ -534,14 +529,13 @@ func UpdateSeries(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirecto
 	}
 
 	// update episode count
-	if err := db.QueryRow(
-		`
-		SELECT
-			COUNT(*) as count
-		FROM
-			series_episodes
-		WHERE
-			series_id = ?
+	if err := db.QueryRow(`
+			SELECT
+				COUNT(*) as count
+			FROM
+				series_episodes
+			WHERE
+				series_id = ?
 		`,
 		id,
 	).Scan(&episodeCount); err != nil {
@@ -587,8 +581,14 @@ func UpdateSeries(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirecto
 		LastModified: time.Now().Format("01-02-2006 15:04:05"),
 	}
 
-	if _, err := db.Exec(
-		"UPDATE series SET title = ?, description = ?, episodes = ?, last_modified = ? WHERE id = ?",
+	if _, err := db.Exec(`
+			UPDATE
+				series
+			SET
+				title = ?, description = ?, episodes = ?, last_modified = ?
+			WHERE
+				id = ?
+		`,
 		updatedSeries.Title,
 		updatedSeries.Description,
 		updatedSeries.EpisodeCount,

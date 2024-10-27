@@ -185,7 +185,7 @@ func CreateMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 			Type:   "null",
 			Title:  "Incomplete request",
 			Status: 400,
-			Detail: "The upload form exceeded 1TB",
+			Detail: "The upload form exceeded 1TB.",
 		}.ToClient(w)
 		return
 	}
@@ -197,7 +197,7 @@ func CreateMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 			Type:   "null",
 			Title:  "Bad request",
 			Status: 400,
-			Detail: "No uploaded cover present in form",
+			Detail: "No uploaded cover present in form.",
 		}.ToClient(w)
 		return
 	}
@@ -209,9 +209,8 @@ func CreateMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 			Type:   "null",
 			Title:  "Bad request",
 			Status: 400,
-			Detail: "No uploaded videos present in form",
+			Detail: "No uploaded videos present in form.",
 		}.ToClient(w)
-
 		return
 	}
 
@@ -285,8 +284,7 @@ func DeleteMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 	}
 
 	// Stage 1, find the video that is being used by the to-be-deleted movie and delete it.
-	if err := database.QueryRow(
-		`
+	if err := database.QueryRow(`
   	SELECT
 			file_name
   	FROM
@@ -295,13 +293,12 @@ func DeleteMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 			id=?
     `,
 		id,
-	).Scan(
-		&movieFileName,
-	); err != nil && !errors.Is(err, sql.ErrNoRows) {
+	).Scan(&movieFileName); err != nil && !errors.Is(err, sql.ErrNoRows) {
 		var response responses.Error
 
 		switch {
 		default:
+			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
 			response = responses.Error{
 				Type:     "null",
 				Title:    "An unknown error has occurred.",
@@ -309,7 +306,6 @@ func DeleteMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 				Detail:   "Sorry, but this error hasn't been properly logged yet.",
 				Instance: r.URL.Path,
 			}
-			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
 		}
 
 		response.ToClient(w)
@@ -355,6 +351,7 @@ func DeleteMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 
 		switch {
 		default:
+			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
 			response = responses.Error{
 				Type:     "null",
 				Title:    "An unknown error has occurred.",
@@ -362,7 +359,6 @@ func DeleteMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 				Detail:   "Sorry, but this error hasn't been properly logged yet.",
 				Instance: r.URL.Path,
 			}
-			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
 		}
 
 		response.ToClient(w)
@@ -370,8 +366,7 @@ func DeleteMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 	}
 
 	// Stage 2, delete the cover from the database.
-	if _, err := database.Exec(
-		`
+	if _, err := database.Exec(`
 	  DELETE FROM
 			movie_covers
 	  WHERE
@@ -383,6 +378,7 @@ func DeleteMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 
 		switch {
 		default:
+			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
 			response = responses.Error{
 				Type:     "null",
 				Title:    "An unknown error has occurred.",
@@ -390,7 +386,6 @@ func DeleteMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 				Detail:   "Sorry, but this error hasn't been properly logged yet.",
 				Instance: r.URL.Path,
 			}
-			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
 		}
 
 		response.ToClient(w)
@@ -405,6 +400,7 @@ func DeleteMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 
 		switch {
 		default:
+			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
 			response = responses.Error{
 				Type:     "null",
 				Title:    "An unknown error has occurred.",
@@ -412,18 +408,18 @@ func DeleteMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 				Detail:   "Sorry, but this error hasn't been properly logged yet.",
 				Instance: r.URL.Path,
 			}
-			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
 		}
 
 		response.ToClient(w)
 		return
 	}
 
-	// Stage 4, delete the series itself from the database.
-	if _, err := database.Exec(
-		`
-  	DELETE FROM series
-  	WHERE id=?
+	// Stage 4, delete the movie itself from the database.
+	if _, err := database.Exec(`
+  	DELETE FROM
+			movie
+  	WHERE
+			id=?
   	`,
 		id,
 	); err != nil {
@@ -431,6 +427,7 @@ func DeleteMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 
 		switch {
 		default:
+			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
 			response = responses.Error{
 				Type:     "null",
 				Title:    "An unknown error has occurred.",
@@ -438,7 +435,6 @@ func DeleteMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 				Detail:   "Sorry, but this error hasn't been properly logged yet.",
 				Instance: r.URL.Path,
 			}
-			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
 		}
 
 		response.ToClient(w)
@@ -451,8 +447,10 @@ func DeleteMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 }
 
 func UpdateMovie(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirectory *string) {
-	id := r.PathValue("id")
-	var episodeCount int
+	var id string = r.PathValue("id")
+	var updatedMovie types.Movie
+	var changedValues []interface{}
+	var query string
 
 	if id == "" {
 		responses.Error{
@@ -465,39 +463,15 @@ func UpdateMovie(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirector
 		return
 	}
 
-	// update episode count
-	if err := db.QueryRow(
-		`
-		SELECT
-			COUNT(*) as count
-		FROM
-			series_episodes
-		WHERE
-			series_id = ?
-		`,
-		id,
-	).Scan(&episodeCount); err != nil {
-		var response responses.Error
-
-		switch {
-		default:
-			response = responses.Error{
-				Type:     "null",
-				Title:    "An unknown error has occurred.",
-				Status:   500,
-				Detail:   "Sorry, but this error hasn't been properly logged yet.",
-				Instance: r.URL.Path,
-			}
-			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
-		}
-
-		response.ToClient(w)
-		return
+	updatedMovie = types.Movie{
+		Id:           id,
+		Title:        r.FormValue("title"),
+		Description:  r.FormValue("description"),
+		LastModified: time.Now().Format("01-02-2006 15:04:05"),
 	}
 
-	description := r.FormValue("description")
-
-	if len(description) > 1000 {
+	// Check if description is less than 1000 bytes
+	if len(updatedMovie.Description) > 1000 {
 		responses.Error{
 			Type:     "null",
 			Title:    "Invalid Request",
@@ -508,29 +482,15 @@ func UpdateMovie(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirector
 		return
 	}
 
-	description = strings.Replace(description, "\n", "&#13;", -1) // Cleanse 1
-	description = strings.Replace(description, "\"", `\\"`, -1)   // Cleanse 2
+	updatedMovie.Description = strings.Replace(updatedMovie.Description, `\\"`, `"`, -1) // Cleanse 1: Remove \"
+	query, changedValues = functions.BuildUpdateQuery("movies", updatedMovie)
 
-	updatedSeries := types.Series{
-		Id:           id,
-		Title:        r.FormValue("title"),
-		Description:  description,
-		EpisodeCount: episodeCount,
-		LastModified: time.Now().Format("01-02-2006 15:04:05"),
-	}
-
-	if _, err := db.Exec(
-		"UPDATE series SET title = ?, description = ?, episodes = ?, last_modified = ? WHERE id = ?",
-		updatedSeries.Title,
-		updatedSeries.Description,
-		updatedSeries.EpisodeCount,
-		updatedSeries.LastModified,
-		updatedSeries.Id,
-	); err != nil {
+	if _, err := db.Exec(query, changedValues...); err != nil {
 		var response responses.Error
 
 		switch {
 		default:
+			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
 			response = responses.Error{
 				Type:     "null",
 				Title:    "An unknown error has occurred.",
@@ -538,10 +498,10 @@ func UpdateMovie(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirector
 				Detail:   "Sorry, but this error hasn't been properly logged yet.",
 				Instance: r.URL.Path,
 			}
-			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
 		}
 
 		response.ToClient(w)
+		return
 	}
 
 	responses.Status{

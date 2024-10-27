@@ -11,7 +11,7 @@ type MovieComment struct {
 
 	// General data that is useful for debugging.
 	CreationDate string `json:"creation_date,omitempty"` // upload date of the movie.
-	LastModified string `json:"last_modifed,omitempty"`  // last modified date of the movie.
+	LastModified string `json:"last_modified,omitempty"` // last modified date of the movie.
 }
 
 type MovieCover struct {
@@ -43,6 +43,6 @@ type Movie struct {
 	// General data.
 	FileExtension string `json:"file_extension"`
 	FileName      string `json:"file_name"`
-	UploadDate    string `json:"upload_date,omitempty"`  // upload date of the movie.
-	LastModified  string `json:"last_modifed,omitempty"` // last modified date of the movie.
+	UploadDate    string `json:"upload_date,omitempty"`   // upload date of the movie.
+	LastModified  string `json:"last_modified,omitempty"` // last modified date of the movie.
 }

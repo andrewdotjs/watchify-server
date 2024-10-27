@@ -58,22 +58,10 @@ func UploadMovie(uploadedFile *multipart.FileHeader, movieStruct *types.Movie, d
 	log.Print("SYS : Executing insert statement into the database.")
 	fmt.Print("SYS : Executing insert statement into the database.\n")
 
+	query, values := BuildInsertQuery("movies", *movieStruct)
+
 	// Insert the new episode's data into the series_episodes table.
-	if _, err = database.Exec(`
-	  INSERT INTO
-			movies
-		VALUES
-		  (?, ?, ?, ?, ?, ?, ?, ?)
-		`,
-		movieStruct.Id,
-		movieStruct.Title,
-		movieStruct.Description,
-		movieStruct.Hidden,
-		movieStruct.FileExtension,
-		movieStruct.FileName,
-		movieStruct.UploadDate,
-		movieStruct.LastModified,
-	); err != nil {
+	if _, err = database.Exec(query, values...); err != nil {
 		var errorResponse responses.Error = responses.Error{
 			Type:   "null",
 			Title:  "Failure to upload movie",
