@@ -181,6 +181,7 @@ func CreateMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 
 	if err := r.ParseMultipartForm(1 << 40); err != nil { // Error handling if form data exceeds 1TB
 		log.Printf("%v", err)
+		fmt.Printf("%v", err)
 		responses.Error{
 			Type:   "null",
 			Title:  "Incomplete request",
@@ -193,6 +194,7 @@ func CreateMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 	uploadedCover = r.MultipartForm.File["cover"]
 	if len(uploadedCover) == 0 {
 		log.Print("Received no cover in request.")
+		fmt.Print("Received no cover in request.")
 		responses.Error{
 			Type:   "null",
 			Title:  "Bad request",
@@ -205,6 +207,7 @@ func CreateMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 	uploadedVideo = r.MultipartForm.File["video"]
 	if len(uploadedVideo) == 0 {
 		log.Print("Received no videos in request.")
+		fmt.Print("Received no videos in request.")
 		responses.Error{
 			Type:   "null",
 			Title:  "Bad request",
@@ -216,6 +219,7 @@ func CreateMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 
 	if len(uploadedVideo) > 1 {
 		log.Print("Received too many videos in request.")
+		fmt.Print("Received too many videos in request.")
 		responses.Error{
 			Type:   "null",
 			Title:  "Bad request",
@@ -299,6 +303,7 @@ func DeleteMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 		switch {
 		default:
 			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
+			fmt.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
 			response = responses.Error{
 				Type:     "null",
 				Title:    "An unknown error has occurred.",
@@ -333,6 +338,7 @@ func DeleteMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 				Instance: r.URL.Path,
 			}
 			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
+			fmt.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
 		}
 
 		response.ToClient(w)
@@ -352,6 +358,7 @@ func DeleteMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 		switch {
 		default:
 			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
+			fmt.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
 			response = responses.Error{
 				Type:     "null",
 				Title:    "An unknown error has occurred.",
@@ -379,6 +386,7 @@ func DeleteMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 		switch {
 		default:
 			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
+			fmt.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
 			response = responses.Error{
 				Type:     "null",
 				Title:    "An unknown error has occurred.",
@@ -401,6 +409,7 @@ func DeleteMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 		switch {
 		default:
 			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
+			fmt.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
 			response = responses.Error{
 				Type:     "null",
 				Title:    "An unknown error has occurred.",
@@ -428,6 +437,7 @@ func DeleteMovie(w http.ResponseWriter, r *http.Request, database *sql.DB, appDi
 		switch {
 		default:
 			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
+			fmt.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
 			response = responses.Error{
 				Type:     "null",
 				Title:    "An unknown error has occurred.",
@@ -491,6 +501,7 @@ func UpdateMovie(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirector
 		switch {
 		default:
 			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
+			fmt.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
 			response = responses.Error{
 				Type:     "null",
 				Title:    "An unknown error has occurred.",

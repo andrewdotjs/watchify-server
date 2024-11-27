@@ -2,6 +2,7 @@ package movies
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -28,6 +29,7 @@ func ReadCover(w http.ResponseWriter, r *http.Request, database *sql.DB, appDire
 
 	if id == "" {
 		log.Print("SYS : Did not find id. Sending placeholder cover.")
+		fmt.Print("SYS : Did not find id. Sending placeholder cover.")
 
 		responses.File{
 			StatusCode: 200,
@@ -47,6 +49,7 @@ func ReadCover(w http.ResponseWriter, r *http.Request, database *sql.DB, appDire
 		&coverFileName,
 	); err != nil {
 		log.Printf("ERR : Error while querying covers, sending placeholder cover. %v", err)
+		fmt.Printf("ERR : Error while querying covers, sending placeholder cover. %v", err)
 
 		responses.File{
 			StatusCode: 200,
@@ -57,6 +60,7 @@ func ReadCover(w http.ResponseWriter, r *http.Request, database *sql.DB, appDire
 
 	if buffer, err := os.ReadFile(path.Join(uploadDirectory, coverFileName)); err != nil {
 		log.Printf("ERR : Error while querying covers. %v", err)
+		fmt.Printf("ERR : Error while querying covers. %v", err)
 
 		responses.File{
 			StatusCode: 200,
@@ -76,6 +80,7 @@ func UpdateCover(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirector
 
 	if id == "" {
 		log.Print("SYS : Did not find id.")
+		fmt.Print("SYS : Did not find id.")
 
 		responses.Error{
 			Type:     "null",
@@ -86,5 +91,4 @@ func UpdateCover(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirector
 		}.ToClient(w)
 		return
 	}
-
 }

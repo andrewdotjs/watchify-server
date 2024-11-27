@@ -6,16 +6,10 @@ import (
 	"os"
 	"path"
 	"time"
-  "runtime"
 )
 
 func InitializeLogger() (*os.File, string) {
-  var currentDate string = time.Now().Format("2006-01-02 15:04:05") 
-	
-  if runtime.GOOS == "windows" {
-    currentDate = time.Now().Format("2006-01-02 15-04-05") 
-	}
-	
+	var currentDate string = time.Now().Format("2006-01-02 1504")
 
 	executablePath, err := os.Executable()
 	if err != nil {
@@ -40,13 +34,8 @@ func InitializeLogger() (*os.File, string) {
 }
 
 func RenameLogFile(file *os.File, oldPath string) {
-  var currentDate string = time.Now().Format("2006-01-02 15:04:05")
-
-  if runtime.GOOS == "windows" {
-    currentDate = time.Now().Format("2006-01-02 15-04-05")
-	}
-  
-  var newPath string = path.Join(oldPath, "..", currentDate+".log")
+	var currentDate string = time.Now().Format("2006-01-02 1504")
+	var newPath string = path.Join(oldPath, "..", currentDate+".log")
 
 	if err := os.Rename(oldPath, newPath); err != nil {
 		log.Fatalf("ERR : %v", err)
