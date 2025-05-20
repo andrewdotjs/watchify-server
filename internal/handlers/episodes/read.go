@@ -1,4 +1,4 @@
-package series
+package episodes
 
 import (
 	"database/sql"
@@ -9,8 +9,6 @@ import (
 	"github.com/andrewdotjs/watchify-server/internal/responses"
 	"github.com/andrewdotjs/watchify-server/internal/types"
 )
-
-func CreateEpisodes() {}
 
 // Gets and returns an array of episodes of a series stored in the database.
 //
@@ -26,7 +24,7 @@ func CreateEpisodes() {}
 //   - status_code : HTTP status code.
 //   - message     : If error, Message detailing the error.
 //   - data        : Series episodes, each returning id, episode.
-func ReadEpisodes(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+func Read(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	var videos []types.Episode
 	id := r.PathValue("id")
 
@@ -103,6 +101,3 @@ func ReadEpisodes(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		Data:   videos,
 	}.ToClient(w)
 }
-
-func UpdateEpisodes() {}
-func DeleteEpisodes() {}

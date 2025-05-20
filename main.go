@@ -1,4 +1,4 @@
- package main
+package main
 
 import (
 	"context"
@@ -13,7 +13,9 @@ import (
 	"github.com/andrewdotjs/watchify-server/internal/functions"
 	"github.com/andrewdotjs/watchify-server/internal/handlers"
 	"github.com/andrewdotjs/watchify-server/internal/handlers/movies"
+	movieCover "github.com/andrewdotjs/watchify-server/internal/handlers/movies/cover"
 	"github.com/andrewdotjs/watchify-server/internal/handlers/series"
+	seriesCover "github.com/andrewdotjs/watchify-server/internal/handlers/series/cover"
 	"github.com/andrewdotjs/watchify-server/internal/middleware"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -52,57 +54,57 @@ func main() {
 
 	// Series collection
 	mux.Handle("GET /api/v1/series/{id}/episodes", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		series.ReadEpisodes(w, r, database)
+		series.Read(w, r, database)
 	}))
 
 	mux.Handle("GET /api/v1/series/{id}/cover", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		series.ReadCover(w, r, database, &appDirectory)
+		seriesCover.Read(w, r, database, &appDirectory)
 	}))
 
 	mux.Handle("GET /api/v1/series/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		series.ReadSeries(w, r, database)
+		series.Read(w, r, database)
 	}))
 
 	mux.Handle("PUT /api/v1/series/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		series.UpdateSeries(w, r, database, &appDirectory)
+		series.Update(w, r, database, &appDirectory)
 	}))
 
 	mux.Handle("DELETE /api/v1/series/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		series.DeleteSeries(w, r, database, &appDirectory)
+		series.Delete(w, r, database, &appDirectory)
 	}))
 
 	mux.Handle("POST /api/v1/series", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		series.CreateSeries(w, r, database, &appDirectory)
+		series.Create(w, r, database, &appDirectory)
 	}))
 
 	mux.Handle("GET /api/v1/series", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		series.ReadSeries(w, r, database)
+		series.Read(w, r, database)
 	}))
 
 	// Movies collection
 
 	mux.Handle("GET /api/v1/movies/{id}/cover", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		movies.ReadCover(w, r, database, &appDirectory)
+		movieCover.Read(w, r, database, &appDirectory)
 	}))
 
 	mux.Handle("GET /api/v1/movies/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		movies.ReadMovie(w, r, database)
+		movies.Read(w, r, database)
 	}))
 
 	mux.Handle("PUT /api/v1/movies/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		movies.UpdateMovie(w, r, database, &appDirectory)
+		movies.Update(w, r, database, &appDirectory)
 	}))
 
 	mux.Handle("DELETE /api/v1/movies/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		movies.DeleteMovie(w, r, database, &appDirectory)
+		movies.Delete(w, r, database, &appDirectory)
 	}))
 
 	mux.Handle("POST /api/v1/movies", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		movies.CreateMovie(w, r, database, &appDirectory)
+		movies.Create(w, r, database, &appDirectory)
 	}))
 
 	mux.Handle("GET /api/v1/movies", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		movies.ReadMovie(w, r, database)
+		movies.Read(w, r, database)
 	}))
 
 	// Middleware

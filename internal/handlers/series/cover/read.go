@@ -1,4 +1,4 @@
-package movies
+package seriesCover
 
 import (
 	"database/sql"
@@ -8,7 +8,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/andrewdotjs/watchify-server/internal"
+	"github.com/andrewdotjs/watchify-server/internal/placeholders"
 	"github.com/andrewdotjs/watchify-server/internal/responses"
 )
 
@@ -22,7 +22,7 @@ import (
 //
 // # HTTP request path parameters:
 //   - id       : REQUIRED. UUID of the series.
-func ReadCover(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
+func Read(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	var id string = r.PathValue("id")
 	var uploadDirectory string = path.Join(*appDirectory, "storage", "covers")
 	var coverFileName string
@@ -33,17 +33,13 @@ func ReadCover(w http.ResponseWriter, r *http.Request, database *sql.DB, appDire
 
 		responses.File{
 			StatusCode: 200,
-			FileBuffer: internal.PlaceholderCover(),
+			FileBuffer: placeholders.Cover(),
 		}.ToClient(w)
 		return
 	}
 
 	if err := database.QueryRow(
-		`
-	  SELECT file_name
-		FROM movie_covers
-		WHERE movie_id=?
-		`,
+		"SELECT file_name FROM series_covers WHERE series_id=?",
 		id,
 	).Scan(
 		&coverFileName,
@@ -53,7 +49,7 @@ func ReadCover(w http.ResponseWriter, r *http.Request, database *sql.DB, appDire
 
 		responses.File{
 			StatusCode: 200,
-			FileBuffer: internal.PlaceholderCover(),
+			FileBuffer: placeholders.Cover(),
 		}.ToClient(w)
 		return
 	}
@@ -64,31 +60,12 @@ func ReadCover(w http.ResponseWriter, r *http.Request, database *sql.DB, appDire
 
 		responses.File{
 			StatusCode: 200,
-			FileBuffer: internal.PlaceholderCover(),
+			FileBuffer: placeholders.Cover(),
 		}.ToClient(w)
 	} else {
 		responses.File{
 			StatusCode: 200,
 			FileBuffer: buffer,
 		}.ToClient(w)
-	}
-}
-
-// use this route to update a cover for a series
-func UpdateCover(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirectory *string) {
-	var id string = r.PathValue("id")
-
-	if id == "" {
-		log.Print("SYS : Did not find id.")
-		fmt.Print("SYS : Did not find id.")
-
-		responses.Error{
-			Type:     "null",
-			Title:    "Incomplete request",
-			Status:   400,
-			Detail:   "Did not receive id from url.",
-			Instance: r.URL.Path,
-		}.ToClient(w)
-		return
 	}
 }

@@ -14,7 +14,8 @@ import (
 // needed tables are all present and ready to be used during the server's
 // runtime. Returns the database as a pointer to an sql.DB struct.
 func InitializeDatabase(appDirectory *string) *sql.DB {
-	databaseDirectory := path.Join(*appDirectory, "db", "app.db")
+	var databaseDirectory string = path.Join(*appDirectory, "db", "app.db")
+
 	log.Println("SYS : Initializing database.")
 	fmt.Println("SYS : Initializing database.")
 
