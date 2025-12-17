@@ -8,10 +8,9 @@ import (
 	"net/http"
 	"path"
 
-	"github.com/andrewdotjs/watchify-server/internal/functions"
-	"github.com/andrewdotjs/watchify-server/internal/functions/upload"
 	"github.com/andrewdotjs/watchify-server/internal/responses"
 	"github.com/andrewdotjs/watchify-server/internal/types"
+	"github.com/andrewdotjs/watchify-server/internal/upload"
 )
 
 // Uploads a series, its episodes, and its cover to the database and stores them within the
@@ -96,12 +95,12 @@ func Create(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirecto
 	movieId, _ := upload.Movie(uploadedVideo[0], &movieStruct, database, &uploadDirectory)
 
 	uploadDirectory = path.Join(*appDirectory, "storage", "covers")
-	cover := types.MovieCover{
-		MovieId: *movieId,
+	cover := types.Cover{
+		ParentId: *movieId,
 		UserId:  "",
 	}
 
-	if err := functions.UploadMovieCover(
+	if err := upload.Cover(
 		uploadedCover[0],
 		&cover,
 		database,

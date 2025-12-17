@@ -1,4 +1,4 @@
-package series
+package shows
 
 import (
 	"database/sql"
@@ -15,7 +15,7 @@ import (
 //
 // # Specifications:
 //   - Method      : DELETE
-//   - Endpoint    : /series/{id}
+//   - Endpoint    : /shows/{id}
 //   - Auth?       : False
 //
 // # HTTP request path parameters:
@@ -46,9 +46,9 @@ func Delete(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirecto
   	SELECT
 			file_name
   	FROM
-			series_episodes
+			episodes
   	WHERE
-			series_id=?
+			parent_id=?
     `,
 		id,
 	)

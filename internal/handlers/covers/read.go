@@ -1,4 +1,4 @@
-package movieCover
+package covers
 
 import (
 	"database/sql"
@@ -39,7 +39,7 @@ func Read(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory
 	}
 
 	if err := database.QueryRow(
-		"SELECT file_name FROM movie_covers WHERE movie_id=?",
+		"SELECT file_name FROM series_covers WHERE series_id=?",
 		id,
 	).Scan(
 		&coverFileName,

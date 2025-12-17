@@ -1,4 +1,4 @@
-package series
+package shows
 
 import (
 	"database/sql"
@@ -7,9 +7,9 @@ import (
 	"path"
 	"time"
 
-	"github.com/andrewdotjs/watchify-server/internal/functions"
 	"github.com/andrewdotjs/watchify-server/internal/responses"
 	"github.com/andrewdotjs/watchify-server/internal/types"
+	"github.com/andrewdotjs/watchify-server/internal/upload"
 	"github.com/google/uuid"
 )
 
@@ -94,7 +94,7 @@ func Create(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirecto
 		return
 	}
 
-	series := types.Series{
+	series := types.Show{
 		Id:           uuid.New().String(),
 		Title:        r.FormValue("title"),
 		Description:  r.FormValue("description"),
@@ -104,15 +104,15 @@ func Create(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirecto
 
 	// Handle upload for every file that was passed in the form.
 	for index, uploadedFile := range uploadedVideos {
-		video := types.Episode{SeriesId: series.Id}
-		functions.SeriesEpisode(uploadedFile, &video, database, &uploadDirectory)
+		video := types.Episode{ParentId: series.Id}
+		upload.Episode(uploadedFile, &video, database, &uploadDirectory)
 		series.EpisodeCount = index + 1
 	}
 
 	uploadDirectory = path.Join(*appDirectory, "storage", "covers")
-	cover := types.SeriesCover{SeriesId: series.Id}
+	cover := types.Cover{ParentId: series.Id}
 
-	functions.SeriesCover(
+	upload.Cover(
 		uploadedCover[0],
 		&cover,
 		database,

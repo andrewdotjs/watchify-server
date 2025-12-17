@@ -1,4 +1,4 @@
-package handlers
+package stream
 
 import (
 	"database/sql"
@@ -22,7 +22,7 @@ import (
 //
 // # HTTP request path parameters:
 //   - id       : REQUIRED. UUID of the video.
-func StreamHandler(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
+func Read(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
 	var id string = r.PathValue("id")
 	var streamTypeQuery string = r.URL.Query().Get("type")
 	var streamType string = "series_episodes"

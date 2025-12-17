@@ -1,4 +1,4 @@
-package series
+package shows
 
 import (
 	"database/sql"
@@ -71,7 +71,7 @@ func Update(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirectory *st
 	description = strings.Replace(description, "\n", "&#13;", -1) // Cleanse 1
 	description = strings.Replace(description, "\"", `\\"`, -1)   // Cleanse 2
 
-	updatedSeries := types.Series{
+	updatedSeries := types.Show{
 		Id:           id,
 		Title:        r.FormValue("title"),
 		Description:  description,

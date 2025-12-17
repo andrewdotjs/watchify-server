@@ -1,4 +1,4 @@
-package series
+package shows
 
 import (
 	"database/sql"
@@ -29,11 +29,11 @@ func Read(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 	var id string = r.PathValue("id")
 	var orderedBy string = r.URL.Query().Get("orderedBy")
 	var orderedByQuery string
-	var series types.Series
+	var series types.Show
 
 	// Return all series if no ID.
 	if id == "" {
-		var seriesArray []types.Series
+		var seriesArray []types.Show
 
 		if orderedBy != "" {
 			switch orderedBy {
@@ -80,7 +80,7 @@ func Read(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 
 		defer rows.Close()
 		for rows.Next() {
-			var series types.Series
+			var series types.Show
 
 			if err := rows.Scan(
 				&series.Id,

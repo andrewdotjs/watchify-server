@@ -1,4 +1,4 @@
-package seriesCover
+package covers
 
 import (
 	"database/sql"
