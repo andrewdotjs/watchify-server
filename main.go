@@ -11,36 +11,42 @@ import (
 
 	"github.com/andrewdotjs/watchify-server/internal/database"
 	"github.com/andrewdotjs/watchify-server/internal/handlers"
-	"github.com/andrewdotjs/watchify-server/internal/handlers/covers"
-	"github.com/andrewdotjs/watchify-server/internal/handlers/movies"
-	"github.com/andrewdotjs/watchify-server/internal/handlers/shows"
 	"github.com/andrewdotjs/watchify-server/internal/logger"
 	"github.com/andrewdotjs/watchify-server/internal/middleware"
 	"github.com/andrewdotjs/watchify-server/internal/server"
+	"github.com/google/uuid"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
 func main() {
   const PORT int = 80
+  var functionId string = uuid.NewString()
+
   var log logger.Logger = logger.Logger{}
 
 	// Initialize logger
 	log.Initialize()
-	log.Info("INIT", "Logger initialized")
+	log.Info(functionId, "Logger initialized")
 
 	// Initialization
 	appDirectory := server.Initialize()
 
 	// Database initialization
 	db := database.Initialize(&log, &appDirectory)
-	log.Info("INIT", "Database initialized")
+	log.Info(functionId, "Database initialized")
 
 	mux := http.NewServeMux()
 
+	handlers.Shows(mux, db, &appDirectory)
+	handlers.Episodes(mux, db, &appDirectory)
+	handlers.Covers(mux, db, &appDirectory)
+	handlers.Movies(mux, db, &appDirectory)
+	handlers.Stream(mux, db, &appDirectory)
+	handlers.Videos(mux, db, &appDirectory)
 
 	// Middleware
-	muxHandler := middleware.LogEndpoint(mux)
+	muxHandler := middleware.LogEndpoint(mux, &log ,&functionId)
 	muxHandler = middleware.CORS(muxHandler)
 
 	server := &http.Server{
@@ -70,7 +76,7 @@ func main() {
 	defer db.Close()
 	server.Shutdown(context.Background())
 
-	log.Info("SHUTDOWN", "Shutting down...")
+	log.Info(functionId, "Shutting down...")
 	log.Rename()
 	os.Exit(0)
 }

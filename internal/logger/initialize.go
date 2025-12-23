@@ -9,7 +9,7 @@ import (
 )
 
 func (thisLogger *Logger) Initialize() {
-	var currentDate string = time.Now().Format("2006-01-02 1504")
+	var currentDate string = time.Now().Format("2006-01-02 150405")
 	var executablePath string = ""
 	var logPath string = ""
 	var logDirectory string = ""
@@ -40,4 +40,5 @@ func (thisLogger *Logger) Initialize() {
 	thisLogger.path = logPath
 
 	log.SetOutput(file)
+	log.Printf("%-19s %-36s %-5s %s", "Datetime", "ID", "Level", "Message")
 }

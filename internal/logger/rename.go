@@ -8,7 +8,7 @@ import (
 )
 
 func (thisLogger *Logger) Rename() {
- 	var currentDate string = time.Now().Format("2006-01-02 1504")
+ 	var currentDate string = time.Now().Format("2006-01-02 150405")
 	var newPath string = path.Join(thisLogger.path, "..", currentDate+".log")
 
 	if err := os.Rename(thisLogger.path, newPath); err != nil {

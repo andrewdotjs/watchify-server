@@ -6,39 +6,41 @@ import (
 	"path"
 
 	"github.com/andrewdotjs/watchify-server/internal/logger"
+	"github.com/google/uuid"
 )
 
 // Initializes the database by ensuring that the database file and
 // needed tables are all present and ready to be used during the server's
 // runtime. Returns the database as a pointer to an sql.DB struct.
 func Initialize(log *logger.Logger, appDirectory *string) *sql.DB {
+  var sequenceId string = uuid.NewString()
 	var databaseDirectory string = path.Join(*appDirectory, "db", "app.db")
 
-	log.Info("INIT", "Starting database initialization")
+	log.Info(sequenceId, "Starting database initialization")
 
 	// Open database
 
-	log.Info("INIT", "Opening database")
+	log.Info(sequenceId, "Opening database")
 
 	database, err := sql.Open("sqlite3", databaseDirectory)
 	if err != nil {
-		log.Fatal("INIT", fmt.Sprintf("%v", err))
+		log.Fatal(sequenceId, fmt.Sprintf("%v", err))
 	} else {
-	  log.Info("INIT", "Successfully opened the database")
+	  log.Info(sequenceId, "Successfully opened the database")
 	}
 
 	// Verify connection with database.
 
-	log.Info("INIT", "Verifying the connection with the database")
+	log.Info(sequenceId, "Verifying the connection with the database")
 
 	if err := database.Ping(); err != nil {
 		defer database.Close()
-		log.Fatal("INIT", fmt.Sprintf("Verification failed. Reason: %v", err))
+		log.Fatal(sequenceId, fmt.Sprintf("Verification failed. Reason: %v", err))
 	} else {
-    log.Info("INIT", "Connection verified")
+    log.Info(sequenceId, "Connection verified")
 	}
 
-	log.Info("INIT", "Verifying database integrity")
+	log.Info(sequenceId, "Verifying database integrity")
 
 	if _, err := database.Exec(`
 		CREATE TABLE IF NOT EXISTS shows (
@@ -83,11 +85,11 @@ func Initialize(log *logger.Logger, appDirectory *string) *sql.DB {
     );
   `); err != nil {
 		defer database.Close()
-		log.Fatal("INIT", fmt.Sprintf("Verification failed. Reason: %v", err))
+		log.Fatal(sequenceId, fmt.Sprintf("Verification failed. Reason: %v", err))
 	} else {
-	  log.Info("INIT", "Database integrity verified")
+	  log.Info(sequenceId, "Database integrity verified")
 	}
 
-	log.Info("INIT", "Database is ready")
+	log.Info(sequenceId, "Database is ready")
 	return database
 }

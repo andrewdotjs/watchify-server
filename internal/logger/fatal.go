@@ -1,5 +1,5 @@
 package logger
 
-func (thisLogger *Logger) Fatal(location string, message string) {
-  thisLogger.Custom("FATAL", location, message)
+func (thisLogger *Logger) Fatal(transactionId string, message string) {
+  thisLogger.Custom("FATAL", &transactionId, &message)
 }

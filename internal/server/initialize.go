@@ -3,19 +3,15 @@ package server
 import (
 	"io/fs"
 	"log"
-	"net/http"
 	"os"
 	"path"
 	"path/filepath"
-
-	"github.com/andrewdotjs/watchify-server/internal/middleware"
-	server "github.com/andrewdotjs/watchify-server/internal/server/routes"
 )
 
 // Initializes the server by ensuring that the needed directories are
 // present during the server's runtime. Returns the path of the
 // running executable's directory.
-func Initialize() (http.Handler, string) {
+func Initialize() (string) {
 	permissions := fs.FileMode(0770) // Linux octal permissions
 
 	executable, err := os.Executable()
@@ -54,13 +50,6 @@ func Initialize() (http.Handler, string) {
 			}
 		}
 	}
-
-	mux := http.NewServeMux()
-
-
-	// Middleware
-	muxHandler := middleware.LogEndpoint(mux)
-	muxHandler = middleware.CORS(muxHandler)
 
 	return appDirectory
 }

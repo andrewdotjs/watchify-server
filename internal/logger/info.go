@@ -1,5 +1,5 @@
 package logger
 
-func (thisLogger *Logger) Info(location string, message string) {
-  thisLogger.Custom("INFO", location, message)
+func (thisLogger *Logger) Info(transactionId string, message string) {
+  thisLogger.Custom("INFO", &transactionId, &message)
 }
