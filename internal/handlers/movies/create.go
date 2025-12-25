@@ -3,14 +3,15 @@ package movies
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"path"
 
+	"github.com/andrewdotjs/watchify-server/internal/logger"
 	"github.com/andrewdotjs/watchify-server/internal/responses"
 	"github.com/andrewdotjs/watchify-server/internal/types"
 	"github.com/andrewdotjs/watchify-server/internal/upload"
+	"github.com/google/uuid"
 )
 
 // Uploads a series, its episodes, and its cover to the database and stores them within the
@@ -30,15 +31,20 @@ import (
 //   - status_code : HTTP status code.
 //   - message     : If error, Message detailing the error.
 //   - data        : Series id, title
-func Create(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
+func Create(
+  w http.ResponseWriter,
+  r *http.Request,
+  database *sql.DB,
+  appDirectory *string,
+  log *logger.Logger,
+) {
 	var uploadDirectory string = path.Join(*appDirectory, "storage", "videos")
 	var uploadedVideo, uploadedCover []*multipart.FileHeader
-	// var coverId string = uuid.NewString()
 	var movieStruct types.Movie
+	var functionId string = uuid.NewString()
 
 	if err := r.ParseMultipartForm(1 << 40); err != nil { // Error handling if form data exceeds 1TB
-		log.Printf("%v", err)
-		fmt.Printf("%v", err)
+	  log.Error(functionId, fmt.Sprintf("%v", err))
 		responses.Error{
 			Type:   "null",
 			Title:  "Incomplete request",
@@ -50,8 +56,7 @@ func Create(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirecto
 
 	uploadedCover = r.MultipartForm.File["cover"]
 	if len(uploadedCover) == 0 {
-		log.Print("Received no cover in request.")
-		fmt.Print("Received no cover in request.")
+	  log.Error(functionId, "Received no cover in request")
 		responses.Error{
 			Type:   "null",
 			Title:  "Bad request",
@@ -63,8 +68,7 @@ func Create(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirecto
 
 	uploadedVideo = r.MultipartForm.File["video"]
 	if len(uploadedVideo) == 0 {
-		log.Print("Received no videos in request.")
-		fmt.Print("Received no videos in request.")
+	  log.Error(functionId, "Received no videos in request")
 		responses.Error{
 			Type:   "null",
 			Title:  "Bad request",
@@ -75,8 +79,7 @@ func Create(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirecto
 	}
 
 	if len(uploadedVideo) > 1 {
-		log.Print("Received too many videos in request.")
-		fmt.Print("Received too many videos in request.")
+	  log.Error(functionId, "Received too many videos in request, limit is 1")
 		responses.Error{
 			Type:   "null",
 			Title:  "Bad request",

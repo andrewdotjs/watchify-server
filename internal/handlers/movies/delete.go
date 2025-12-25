@@ -4,12 +4,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"path"
 
+	"github.com/andrewdotjs/watchify-server/internal/logger"
 	"github.com/andrewdotjs/watchify-server/internal/responses"
+	"github.com/google/uuid"
 )
 
 // Deletes a series, its episodes, and its cover from the database and storage folders.
@@ -25,10 +26,18 @@ import (
 // # HTTP response JSON contents:
 //   - status_code : HTTP status code.
 //   - message     : If error, Message detailing the error.
-func Delete(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
+func Delete(
+  w http.ResponseWriter,
+  r *http.Request,
+  database *sql.DB,
+  appDirectory *string,
+  log *logger.Logger,
+) {
 	var id string = r.PathValue("id")
-	var coverFileName string
-	var movieFileName string
+	var functionId string = uuid.NewString()
+	var coverFileName string = ""
+	var movieFileName string = ""
+
 
 	if id == "" {
 		responses.Error{
@@ -56,8 +65,7 @@ func Delete(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirecto
 
 		switch {
 		default:
-			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
-			fmt.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
+		  log.Error(functionId, fmt.Sprintf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err))
 			response = responses.Error{
 				Type:     "null",
 				Title:    "An unknown error has occurred.",
@@ -91,8 +99,7 @@ func Delete(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirecto
 				Detail:   "Sorry, but this error hasn't been properly logged yet.",
 				Instance: r.URL.Path,
 			}
-			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
-			fmt.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
+			log.Error(functionId, fmt.Sprintf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err))
 		}
 
 		response.ToClient(w)
@@ -111,8 +118,7 @@ func Delete(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirecto
 
 		switch {
 		default:
-			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
-			fmt.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
+		log.Error(functionId, fmt.Sprintf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err))
 			response = responses.Error{
 				Type:     "null",
 				Title:    "An unknown error has occurred.",
@@ -129,9 +135,9 @@ func Delete(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirecto
 	// Stage 2, delete the cover from the database.
 	if _, err := database.Exec(`
 	  DELETE FROM
-			movie_covers
+			covers
 	  WHERE
-			movie_id=?
+			parent_id=?
   	`,
 		id,
 	); err != nil {
@@ -139,8 +145,7 @@ func Delete(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirecto
 
 		switch {
 		default:
-			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
-			fmt.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
+		  log.Error(functionId, fmt.Sprintf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err))
 			response = responses.Error{
 				Type:     "null",
 				Title:    "An unknown error has occurred.",
@@ -162,8 +167,7 @@ func Delete(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirecto
 
 		switch {
 		default:
-			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
-			fmt.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
+		  log.Error(functionId, fmt.Sprintf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err))
 			response = responses.Error{
 				Type:     "null",
 				Title:    "An unknown error has occurred.",
@@ -190,8 +194,7 @@ func Delete(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirecto
 
 		switch {
 		default:
-			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
-			fmt.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
+		  log.Error(functionId, fmt.Sprintf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err))
 			response = responses.Error{
 				Type:     "null",
 				Title:    "An unknown error has occurred.",

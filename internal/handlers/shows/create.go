@@ -2,11 +2,12 @@ package shows
 
 import (
 	"database/sql"
-	"log"
+	"fmt"
 	"net/http"
 	"path"
 	"time"
 
+	"github.com/andrewdotjs/watchify-server/internal/logger"
 	"github.com/andrewdotjs/watchify-server/internal/responses"
 	"github.com/andrewdotjs/watchify-server/internal/types"
 	"github.com/andrewdotjs/watchify-server/internal/upload"
@@ -30,9 +31,17 @@ import (
 //   - status_code : HTTP status code.
 //   - message     : If error, Message detailing the error.
 //   - data        : Series id, title
-func Create(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
+func Create(
+  w http.ResponseWriter,
+  r *http.Request,
+  database *sql.DB,
+  appDirectory *string,
+  log *logger.Logger,
+) {
+  var functionId string = uuid.NewString()
+
 	if err := r.ParseMultipartForm(1 << 40); err != nil { // Error handling if form data exceeds 1TB
-		log.Printf("%v", err)
+		log.Error(functionId, fmt.Sprintf("%v", err))
 		responses.Error{
 			Type:   "null",
 			Title:  "Incomplete request",
@@ -48,7 +57,7 @@ func Create(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirecto
 
 	uploadedCover := r.MultipartForm.File["cover"]
 	if len(uploadedCover) == 0 {
-		log.Print("Received no cover in request.")
+	  log.Error(functionId, "Received no cover in request")
 		responses.Error{
 			Type:   "null",
 			Title:  "Bad request",
@@ -84,7 +93,7 @@ func Create(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirecto
 	//}
 
 	if len(uploadedVideos) == 0 {
-		log.Print("Received no videos in request.")
+		log.Error(functionId, "Received no videos in request")
 		responses.Error{
 			Type:   "null",
 			Title:  "Bad request",
@@ -94,7 +103,7 @@ func Create(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirecto
 		return
 	}
 
-	series := types.Show{
+	show := types.Show{
 		Id:           uuid.New().String(),
 		Title:        r.FormValue("title"),
 		Description:  r.FormValue("description"),
@@ -104,13 +113,13 @@ func Create(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirecto
 
 	// Handle upload for every file that was passed in the form.
 	for index, uploadedFile := range uploadedVideos {
-		video := types.Episode{ParentId: series.Id}
+		video := types.Episode{ParentId: show.Id}
 		upload.Episode(uploadedFile, &video, database, &uploadDirectory)
-		series.EpisodeCount = index + 1
+		show.EpisodeCount = index + 1
 	}
 
 	uploadDirectory = path.Join(*appDirectory, "storage", "covers")
-	cover := types.Cover{ParentId: series.Id}
+	cover := types.Cover{ParentId: show.Id}
 
 	upload.Cover(
 		uploadedCover[0],
@@ -121,23 +130,23 @@ func Create(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirecto
 
 	if _, err := database.Exec(`
    	INSERT INTO
-			series
+      shows
    	VALUES
 			(?, ?, ?, ?, ?, ?, ?)
     `,
-		series.Id,
-		series.Title,
-		series.Description,
-		series.EpisodeCount,
-		series.Hidden,
-		series.UploadDate,
-		series.LastModified,
+		show.Id,
+		show.Title,
+		show.Description,
+		show.EpisodeCount,
+		show.Hidden,
+		show.UploadDate,
+		show.LastModified,
 	); err != nil {
-		log.Fatalf("ERR : %v", err)
+	  log.Error(functionId, fmt.Sprintf("%v", err))
 	}
 
 	responses.Status{
 		Status: 201,
-		Data:   series,
+		Data:   show,
 	}.ToClient(w)
 }

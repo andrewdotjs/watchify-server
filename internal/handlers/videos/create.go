@@ -25,7 +25,12 @@ import (
 // # HTTP response JSON contents:
 //   - status_code : HTTP status code.
 //   - message     : If error, message detailing the error.
-func Create(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
+func Create(
+  w http.ResponseWriter,
+  r *http.Request,
+  database *sql.DB,
+  appDirectory *string,
+) {
 	var video types.Episode
 
 	// Error handling if form data exceeds 1GB
@@ -49,7 +54,7 @@ func Create(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirecto
 
 	defer file.Close()
 
-	video.ParentId = r.FormValue("series-id")
+	video.ParentId = r.FormValue("show-id")
 
 	uploadDirectory := path.Join(*appDirectory, "storage", "videos")
 	upload.Episode(handler, &video, database, &uploadDirectory)

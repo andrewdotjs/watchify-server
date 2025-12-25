@@ -24,9 +24,13 @@ import (
 //   - status_code : HTTP status code.
 //   - message     : If error, message detailing the error.
 //   - data        : id, series_id, title (if empty, json data is empty)
-func Read(w http.ResponseWriter, r *http.Request, database *sql.DB) {
-	id := r.PathValue("id")
-	video := types.Episode{Id: id}
+func Read(
+  w http.ResponseWriter,
+  r *http.Request,
+  database *sql.DB,
+) {
+	var id string = r.PathValue("id")
+	var video types.Episode = types.Episode{Id: id}
 
 	if id == "" {
 		responses.Error{
@@ -41,9 +45,9 @@ func Read(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 
 	if err := database.QueryRow(`
   	SELECT
-			series_id, episode_number
+			parent_id, episode_number
   	FROM
-			series_episodes
+			episodes
   	WHERE
 			id=?
   	`,
@@ -69,9 +73,9 @@ func Read(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 	  SELECT
 			id, episode_number
 		FROM
-			series_episodes
+			episodes
 		WHERE
-			series_id=?
+			parent_id=?
 		AND
 			(episode_number=? OR episode_number=?)
 		`,

@@ -2,6 +2,7 @@ package logger
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"path"
@@ -15,6 +16,7 @@ func (thisLogger *Logger) Initialize() {
 	var logDirectory string = ""
 	var file *os.File
 	var err error
+	var header string = fmt.Sprintf("%-19s %-36s %-5s %s \n", "Datetime", "ID", "Level", "Message")
 
 	executablePath, err = os.Executable()
 	if err != nil {
@@ -39,6 +41,9 @@ func (thisLogger *Logger) Initialize() {
 	thisLogger.fileObject = file
 	thisLogger.path = logPath
 
+	if _, err := file.Write([]byte(header)); err != nil {
+	  return
+	}
+
 	log.SetOutput(file)
-	log.Printf("%-19s %-36s %-5s %s", "Datetime", "ID", "Level", "Message")
 }

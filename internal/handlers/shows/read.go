@@ -4,11 +4,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 
+	"github.com/andrewdotjs/watchify-server/internal/logger"
 	"github.com/andrewdotjs/watchify-server/internal/responses"
 	"github.com/andrewdotjs/watchify-server/internal/types"
+	"github.com/google/uuid"
 )
 
 // Gets and returns an array of series stored in the database.
@@ -25,15 +26,21 @@ import (
 //   - status_code : HTTP status code.
 //   - message     : If error, Message detailing the error.
 //   - data        : Series contents, each returning id, episode count, title, description.
-func Read(w http.ResponseWriter, r *http.Request, database *sql.DB) {
+func Read(
+  w http.ResponseWriter,
+  r *http.Request,
+  database *sql.DB,
+  log *logger.Logger,
+) {
 	var id string = r.PathValue("id")
 	var orderedBy string = r.URL.Query().Get("orderedBy")
-	var orderedByQuery string
-	var series types.Show
+	var orderedByQuery string = ""
+	var show types.Show = types.Show{}
+	var functionId string = uuid.NewString()
 
 	// Return all series if no ID.
 	if id == "" {
-		var seriesArray []types.Show
+		var shows []types.Show
 
 		if orderedBy != "" {
 			switch orderedBy {
@@ -49,7 +56,7 @@ func Read(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 					SELECT
 						id, title, description, episode_count, upload_date, last_modified
 					FROM
-						series
+					  shows
 					%v
 					LIMIT
 						15
@@ -80,36 +87,36 @@ func Read(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 
 		defer rows.Close()
 		for rows.Next() {
-			var series types.Show
+			var show types.Show
 
 			if err := rows.Scan(
-				&series.Id,
-				&series.Title,
-				&series.Description,
-				&series.EpisodeCount,
-				&series.UploadDate,
-				&series.LastModified,
+				&show.Id,
+				&show.Title,
+				&show.Description,
+				&show.EpisodeCount,
+				&show.UploadDate,
+				&show.LastModified,
 			); err != nil {
 				defer database.Close()
-				log.Fatalf("ERR : %v", err)
+				log.Error(functionId, fmt.Sprintf("%v", err))
 			}
 
-			series.Episodes = map[string]any{
-				"count": series.EpisodeCount,
-				"url":   ("/api/v1/series/" + series.Id + "/episodes"),
+			show.Episodes = map[string]any{
+				"count": show.EpisodeCount,
+				"url":   ("/api/v1/series/" + show.Id + "/episodes"),
 			}
 
-			series.Cover = map[string]any{
+			show.Cover = map[string]any{
 				"exists": true,
-				"url":    ("/api/v1/series/" + series.Id + "/cover"),
+				"url":    ("/api/v1/series/" + show.Id + "/cover"),
 			}
 
-			seriesArray = append(seriesArray, series)
+			shows = append(shows, show)
 		}
 
 		responses.Status{
 			Status: 200,
-			Data:   seriesArray,
+			Data:   shows,
 		}.ToClient(w)
 		return
 	}
@@ -119,18 +126,18 @@ func Read(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 		SELECT
 			id, title, description, episode_count, upload_date, last_modified
 		FROM
-			series
+		  shows
 		WHERE
 			id=?
 		`,
 		id,
 	).Scan(
-		&series.Id,
-		&series.Title,
-		&series.Description,
-		&series.EpisodeCount,
-		&series.UploadDate,
-		&series.LastModified,
+		&show.Id,
+		&show.Title,
+		&show.Description,
+		&show.EpisodeCount,
+		&show.UploadDate,
+		&show.LastModified,
 	); err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -155,18 +162,18 @@ func Read(w http.ResponseWriter, r *http.Request, database *sql.DB) {
 	}
 
 	// Assemble
-	series.Episodes = map[string]any{
-		"count": series.EpisodeCount,
-		"url":   ("/api/v1/series/" + series.Id + "/episodes"),
+	show.Episodes = map[string]any{
+		"count": show.EpisodeCount,
+		"url":   ("/api/v1/series/" + show.Id + "/episodes"),
 	}
 
-	series.Cover = map[string]any{
+	show.Cover = map[string]any{
 		"exists": true,
-		"url":    ("/api/v1/series/" + series.Id + "/cover"),
+		"url":    ("/api/v1/series/" + show.Id + "/cover"),
 	}
 
 	responses.Status{
 		Status: 200,
-		Data:   series,
+		Data:   show,
 	}.ToClient(w)
 }

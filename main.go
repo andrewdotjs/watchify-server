@@ -38,12 +38,12 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	handlers.Shows(mux, db, &appDirectory)
-	handlers.Episodes(mux, db, &appDirectory)
-	handlers.Covers(mux, db, &appDirectory)
-	handlers.Movies(mux, db, &appDirectory)
-	handlers.Stream(mux, db, &appDirectory)
-	handlers.Videos(mux, db, &appDirectory)
+	handlers.Shows(mux, db, &appDirectory, &log)
+	handlers.Episodes(mux, db, &appDirectory, &log)
+	handlers.Covers(mux, db, &appDirectory, &log)
+	handlers.Movies(mux, db, &appDirectory, &log)
+	handlers.Stream(mux, db, &appDirectory, &log)
+	handlers.Videos(mux, db, &appDirectory, &log)
 
 	// Middleware
 	muxHandler := middleware.LogEndpoint(mux, &log ,&functionId)
@@ -61,10 +61,10 @@ func main() {
 	go func() {
 		if err := server.ListenAndServe(); err == http.ErrServerClosed {
 			fmt.Println("")
-			log.Info("SHUTDOWN", "Starting shutdown procedure")
+			log.Info(functionId, "Starting shutdown procedure")
 		} else if err != nil {
 			fmt.Println("")
-			log.Error("SHUTDOWN", fmt.Sprintf("%v", err))
+			log.Error(functionId, fmt.Sprintf("%v", err))
 		}
 	}()
 
@@ -77,6 +77,5 @@ func main() {
 	server.Shutdown(context.Background())
 
 	log.Info(functionId, "Shutting down...")
-	log.Rename()
 	os.Exit(0)
 }

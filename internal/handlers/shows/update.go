@@ -2,18 +2,28 @@ package shows
 
 import (
 	"database/sql"
-	"log"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/andrewdotjs/watchify-server/internal/logger"
 	"github.com/andrewdotjs/watchify-server/internal/responses"
 	"github.com/andrewdotjs/watchify-server/internal/types"
+	"github.com/google/uuid"
 )
 
-func Update(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirectory *string) {
-	id := r.PathValue("id")
-	var episodeCount int
+func Update(
+  w http.ResponseWriter,
+  r *http.Request,
+  db *sql.DB,
+  appDirectory *string,
+  log *logger.Logger,
+) {
+	var id string = r.PathValue("id")
+	var episodeCount int = 0
+	var functionId string = uuid.NewString()
+
 
 	if id == "" {
 		responses.Error{
@@ -31,9 +41,9 @@ func Update(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirectory *st
 			SELECT
 				COUNT(*) as count
 			FROM
-				series_episodes
+				episodes
 			WHERE
-				series_id = ?
+				parent_id = ?
 		`,
 		id,
 	).Scan(&episodeCount); err != nil {
@@ -48,7 +58,7 @@ func Update(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirectory *st
 				Detail:   "Sorry, but this error hasn't been properly logged yet.",
 				Instance: r.URL.Path,
 			}
-			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
+			log.Error(functionId, fmt.Sprintf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err))
 		}
 
 		response.ToClient(w)
@@ -68,10 +78,10 @@ func Update(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirectory *st
 		return
 	}
 
-	description = strings.Replace(description, "\n", "&#13;", -1) // Cleanse 1
-	description = strings.Replace(description, "\"", `\\"`, -1)   // Cleanse 2
+	description = strings.ReplaceAll(description, "\n", "&#13;") // Cleanse 1
+	description = strings.ReplaceAll(description, "\"", `\\"`)   // Cleanse 2
 
-	updatedSeries := types.Show{
+	updatedShow := types.Show{
 		Id:           id,
 		Title:        r.FormValue("title"),
 		Description:  description,
@@ -81,17 +91,17 @@ func Update(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirectory *st
 
 	if _, err := db.Exec(`
 			UPDATE
-				series
+			  shows
 			SET
 				title = ?, description = ?, episodes = ?, last_modified = ?
 			WHERE
 				id = ?
 		`,
-		updatedSeries.Title,
-		updatedSeries.Description,
-		updatedSeries.EpisodeCount,
-		updatedSeries.LastModified,
-		updatedSeries.Id,
+		updatedShow.Title,
+		updatedShow.Description,
+		updatedShow.EpisodeCount,
+		updatedShow.LastModified,
+		updatedShow.Id,
 	); err != nil {
 		var response responses.Error
 
@@ -104,7 +114,7 @@ func Update(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirectory *st
 				Detail:   "Sorry, but this error hasn't been properly logged yet.",
 				Instance: r.URL.Path,
 			}
-			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
+			log.Error(functionId, fmt.Sprintf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err))
 		}
 
 		response.ToClient(w)

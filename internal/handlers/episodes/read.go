@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/andrewdotjs/watchify-server/internal/logger"
 	"github.com/andrewdotjs/watchify-server/internal/responses"
 	"github.com/andrewdotjs/watchify-server/internal/types"
 )
@@ -24,7 +25,12 @@ import (
 //   - status_code : HTTP status code.
 //   - message     : If error, Message detailing the error.
 //   - data        : Series episodes, each returning id, episode.
-func Read(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+func Read(
+  w http.ResponseWriter,
+  r *http.Request,
+  db *sql.DB,
+  log *logger.Logger,
+) {
 	var videos []types.Episode
 	id := r.PathValue("id")
 
@@ -44,9 +50,9 @@ func Read(w http.ResponseWriter, r *http.Request, db *sql.DB) {
    	SELECT
 			id, episode_number
    	FROM
-			series_episodes
+			episodes
    	WHERE
-			series_id=?
+			parent_id=?
     `,
 		id,
 	)

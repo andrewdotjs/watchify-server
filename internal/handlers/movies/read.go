@@ -25,10 +25,14 @@ import (
 //   - status_code : HTTP status code.
 //   - message     : If error, Message detailing the error.
 //   - data        : Series contents, each returning id, episode count, title, description.
-func Read(w http.ResponseWriter, r *http.Request, database *sql.DB) {
+func Read(
+  w http.ResponseWriter,
+  r *http.Request,
+  database *sql.DB,
+) {
 	var id string = r.PathValue("id")
 	var hidden bool = (r.URL.Query().Get("hidden") == "true")
-	var movieStruct types.Movie
+	var movieStruct types.Movie = types.Movie{}
 
 	// Return all series if no ID.
 	if id == "" {

@@ -3,21 +3,29 @@ package movies
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/andrewdotjs/watchify-server/internal/functions"
+	"github.com/andrewdotjs/watchify-server/internal/logger"
 	"github.com/andrewdotjs/watchify-server/internal/responses"
 	"github.com/andrewdotjs/watchify-server/internal/types"
+	"github.com/google/uuid"
 )
 
-func Update(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirectory *string) {
+func Update(
+  w http.ResponseWriter,
+  r *http.Request,
+  db *sql.DB,
+  appDirectory *string,
+  log *logger.Logger,
+) {
 	var id string = r.PathValue("id")
-	var updatedMovie types.Movie
-	var changedValues []interface{}
-	var query string
+	var updatedMovie types.Movie = types.Movie{}
+	var changedValues []any = []any{}
+	var query string = ""
+	var functionId string = uuid.NewString()
 
 	if id == "" {
 		responses.Error{
@@ -37,8 +45,9 @@ func Update(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirectory *st
 		LastModified: time.Now().Format("01-02-2006 15:04:05"),
 	}
 
-	// Check if description is less than 1000 bytes
+	// Check if description is larger than 1000 bytes
 	if len(updatedMovie.Description) > 1000 {
+	  log.Error(functionId, "The provided description was larger than 1000 bytes")
 		responses.Error{
 			Type:     "null",
 			Title:    "Invalid Request",
@@ -49,7 +58,7 @@ func Update(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirectory *st
 		return
 	}
 
-	updatedMovie.Description = strings.Replace(updatedMovie.Description, `\\"`, `"`, -1) // Cleanse 1: Remove \"
+	updatedMovie.Description = strings.ReplaceAll(updatedMovie.Description, `\\"`, `"`) // Cleanse 1: Remove \"
 	query, changedValues = functions.BuildUpdateQuery("movies", updatedMovie)
 
 	if _, err := db.Exec(query, changedValues...); err != nil {
@@ -57,8 +66,7 @@ func Update(w http.ResponseWriter, r *http.Request, db *sql.DB, appDirectory *st
 
 		switch {
 		default:
-			log.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
-			fmt.Printf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err)
+			log.Error(functionId, fmt.Sprintf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err))
 			response = responses.Error{
 				Type:     "null",
 				Title:    "An unknown error has occurred.",

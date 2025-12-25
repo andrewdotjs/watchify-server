@@ -22,14 +22,19 @@ import (
 //
 // # HTTP request path parameters:
 //   - id       : REQUIRED. UUID of the video.
-func Read(w http.ResponseWriter, r *http.Request, database *sql.DB, appDirectory *string) {
+func Read(
+  w http.ResponseWriter,
+  r *http.Request,
+  database *sql.DB,
+  appDirectory *string,
+) {
 	var id string = r.PathValue("id")
 	var streamTypeQuery string = r.URL.Query().Get("type")
-	var streamType string = "series_episodes"
+	var streamType string = "shows"
 	var query string
 	var fileName string
 
-	if streamTypeQuery == "movie" {
+	if streamTypeQuery != "episodes" {
 		streamType = "movies"
 	}
 
