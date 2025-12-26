@@ -2,9 +2,9 @@ package movies
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/andrewdotjs/watchify-server/internal/functions"
@@ -22,9 +22,8 @@ func Update(
   log *logger.Logger,
 ) {
 	var id string = r.PathValue("id")
-	var updatedMovie types.Movie = types.Movie{}
-	var changedValues []any = []any{}
-	var query string = ""
+	var movie types.Movie = types.Movie{}
+	var oldMovie types.Movie = types.Movie{}
 	var functionId string = uuid.NewString()
 
 	if id == "" {
@@ -38,30 +37,110 @@ func Update(
 		return
 	}
 
-	updatedMovie = types.Movie{
-		Id:           id,
-		Title:        r.FormValue("title"),
-		Description:  r.FormValue("description"),
-		LastModified: time.Now().Format("01-02-2006 15:04:05"),
+
+	if len(r.FormValue("title")) > 50 {
+    log.Error(functionId, "The provided description was larger than 1000 bytes")
+    responses.Error{
+     	Type:     "null",
+     	Title:    "Invalid Request",
+     	Status:   400,
+     	Detail:   "The title value was larger than 50 bytes. In UTF-8 encoding, English characters are 1 byte each.",
+     	Instance: r.URL.Path,
+    }.ToClient(w)
+    return
 	}
 
 	// Check if description is larger than 1000 bytes
-	if len(updatedMovie.Description) > 1000 {
+	if len(r.FormValue("description")) > 1000 {
 	  log.Error(functionId, "The provided description was larger than 1000 bytes")
 		responses.Error{
 			Type:     "null",
 			Title:    "Invalid Request",
 			Status:   400,
-			Detail:   "The description was larger than 1000 bytes. In UTF-8 encoding, the usual English characters are 1 byte each.",
+			Detail:   "The description value was larger than 1000 bytes. In UTF-8 encoding, English characters are 1 byte each.",
 			Instance: r.URL.Path,
 		}.ToClient(w)
 		return
 	}
 
-	updatedMovie.Description = strings.ReplaceAll(updatedMovie.Description, `\\"`, `"`) // Cleanse 1: Remove \"
-	query, changedValues = functions.BuildUpdateQuery("movies", updatedMovie)
+	// Check if hidden is larger than 5 bytes
+	if len(r.FormValue("hidden")) > 5 {
+	  log.Error(functionId, "The provided description was larger than 1000 bytes")
+		responses.Error{
+			Type:     "null",
+			Title:    "Invalid Request",
+			Status:   400,
+			Detail:   "The hidden value was larger than 5 bytes. In UTF-8 encoding, English characters are 1 byte each.",
+			Instance: r.URL.Path,
+		}.ToClient(w)
+		return
+	}
 
-	if _, err := db.Exec(query, changedValues...); err != nil {
+	movie = types.Movie{
+		Id:           id,
+		Title:        functions.Sanitize(r.FormValue("title")),
+		Hidden:       (r.FormValue("hidden") == "true"),
+		Description:  functions.Sanitize(r.FormValue("description")),
+		LastModified: time.Now().Format("01-02-2006 15:04:05"),
+	}
+
+	if err := db.QueryRow(
+		`
+		SELECT
+			title, description, hidden
+		FROM
+			movies
+		WHERE
+			id = ?
+		`,
+		id,
+	).Scan(
+		&oldMovie.Title,
+		&oldMovie.Description,
+		&oldMovie.Hidden,
+	); err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+		  log.Info(functionId, "No movie found with provided ID")
+			responses.Error{
+				Type:     "null",
+				Title:    "Data not found",
+				Status:   400,
+				Detail:   "No movie could be found with the given id.",
+				Instance: r.URL.Path,
+			}.ToClient(w)
+		default:
+		  log.Error(functionId, fmt.Sprintf("An unknown error occurred. %v", err))
+			responses.Error{
+				Type:     "null",
+				Title:    "Unknown Error",
+				Status:   500,
+				Detail:   fmt.Sprintf("%v", err),
+				Instance: r.URL.Path,
+			}.ToClient(w)
+		}
+
+		return
+	}
+
+	if movie.Title == "" { movie.Title = oldMovie.Title }
+	if movie.Description == "" { movie.Description = oldMovie.Description }
+
+	if _, err := db.Exec(
+  	`
+   	  UPDATE
+        movies
+      SET
+    		title = ?, description = ?, hidden = ?, last_modified = ?
+     	WHERE
+    		id = ?
+  	`,
+  	movie.Title,
+  	movie.Description,
+    movie.Hidden,
+  	movie.LastModified,
+  	movie.Id,
+	); err != nil {
 		var response responses.Error
 
 		switch {

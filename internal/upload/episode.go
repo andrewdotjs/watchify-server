@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
-	"log"
 	"mime/multipart"
 	"os"
 	"path"
@@ -12,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/andrewdotjs/watchify-server/internal/logger"
 	"github.com/andrewdotjs/watchify-server/internal/responses"
 	"github.com/andrewdotjs/watchify-server/internal/types"
 	"github.com/google/uuid"
@@ -20,7 +20,14 @@ import (
 // This takes a episode file and stores it in the file system and database.
 //
 // This function does not return anything.
-func Episode(uploadedFile *multipart.FileHeader, episode *types.Episode, database *sql.DB, uploadDirectory *string) *responses.Error {
+func Episode(
+  uploadedFile *multipart.FileHeader,
+  episode *types.Episode,
+  database *sql.DB,
+  uploadDirectory *string,
+  log *logger.Logger,
+  functionId *string,
+) *responses.Error {
 	var currentDateTime string = time.Now().Format("2006-01-02 15:04:05")
 	var splitFileName []string = strings.Split(uploadedFile.Filename, ".")
 	var uploadPath string
@@ -29,32 +36,27 @@ func Episode(uploadedFile *multipart.FileHeader, episode *types.Episode, databas
 
 	episode.Id = id
 	episode.FileExtension = splitFileName[1]
-	episode.FileName = fmt.Sprintf("%s, %s", id, splitFileName[1])
+	episode.FileName = fmt.Sprintf("%s.%s", id, splitFileName[1])
 	episode.UploadDate = currentDateTime
 	episode.LastModified = currentDateTime
 
-	log.Print("SYS : Starting series episode upload sequence.")
-	fmt.Print("SYS : Starting series episode upload sequence.\n")
-
-	log.Print("SYS : Checking if upload directory is present.")
-	fmt.Print("SYS : Checking if upload directory is present.\n")
+	log.Info(*functionId, "Starting episode upload sequence.")
+	log.Info(*functionId, "Checking if upload directory is present.")
 
 	// Create the upload directory if it doesn't exist.
 	if _, err = os.ReadDir(*uploadDirectory); os.IsNotExist(err) {
-		log.Printf("SYS : Could not find upload directory at '%s'. Creating one.", *uploadDirectory)
-		fmt.Printf("SYS : Could not find upload directory at '%s'. Creating one.\n", *uploadDirectory)
+		log.Info(*functionId, fmt.Sprintf("Could not find upload directory at '%s'. Creating one.", *uploadDirectory))
 
 		if err = os.Mkdir(*uploadDirectory, os.FileMode(0777)); err != nil {
 			var errorResponse responses.Error = responses.Error{
 				Type:   "null",
-				Title:  "Failure to upload series episode",
+				Title:  "Failure to upload episode",
 				Status: 500,
 				Detail: "Failed to create a new upload directory when needed.",
 				// Add URL endpoint as instance.
 			}
 
-			log.Printf("SYS : Failed to create a new upload directory when needed. %v", err)
-			fmt.Printf("SYS : Failed to create a new upload directory when needed. %v\n", err)
+			log.Info(*functionId, fmt.Sprintf("Failed to create a new upload directory when needed. %v", err))
 
 			return &errorResponse
 		}
@@ -62,20 +64,18 @@ func Episode(uploadedFile *multipart.FileHeader, episode *types.Episode, databas
 
 	// Retrieve episode number from file name.
 	if number, err := strconv.Atoi(splitFileName[0]); err != nil {
-		log.Printf("SYS : Error retrieving episode number from filename \"%s\", can this be converted to an integer? Setting this value to 0.", splitFileName[0])
-		fmt.Printf("SYS : Error retrieving episode number from filename \"%s\", can this be converted to an integer? Setting this value to 0.\n", splitFileName[0])
+		log.Info(*functionId, fmt.Sprintf("Error retrieving episode number from filename \"%s\", can this be converted to an integer? Setting this value to 0.", splitFileName[0]))
 		episode.EpisodeNumber = 0
 	} else {
 		episode.EpisodeNumber = number
 	}
 
-	log.Print("SYS : Executing insert statement into the database.")
-	fmt.Print("SYS : Executing insert statement into the database.\n")
+	log.Info(*functionId, "Executing insert statement into the database")
 
 	// Insert the new episode's data into the series_episodes table.
 	if _, err = database.Exec(`
 	  INSERT INTO
-			series_episodes
+			episodes
 		VALUES
 		  (?, ?, ?, ?, ?, ?, ?, ?, ?)
 		`,
@@ -97,14 +97,12 @@ func Episode(uploadedFile *multipart.FileHeader, episode *types.Episode, databas
 			// Add URL endpoint as instance.
 		}
 
-		log.Printf("SYS : Failed to execute SQL insert statement. %v", err)
-		fmt.Printf("SYS : Failed to execute SQL insert statement. %v\n", err)
+		log.Info(*functionId, fmt.Sprintf("Failed to execute SQL insert statement. %v", err))
 
 		return &errorResponse
 	}
 
-	log.Print("SYS : Creating file in storage system.")
-	fmt.Print("SYS : Creating file in storage system.\n")
+	log.Info(*functionId, "Creating file in storage system.")
 
 	// Create file that will soon contain uploaded file contents.
 	uploadPath = path.Join(*uploadDirectory, episode.FileName)
@@ -118,16 +116,13 @@ func Episode(uploadedFile *multipart.FileHeader, episode *types.Episode, databas
 			// Add URL endpoint as instance.
 		}
 
-		log.Printf("SYS : Failed to create file in storage system. %v", err)
-		fmt.Printf("SYS : Failed to create file in storage system. %v\n", err)
-
+		log.Info(*functionId, fmt.Sprintf("Failed to create file in storage system. %v", err))
 		return &errorResponse
 	}
 
 	defer out.Close()
 
-	log.Print("SYS : Opening uploaded file.")
-	fmt.Print("SYS : Opening uploaded file.\n")
+	log.Info(*functionId, "Opening uploaded file.")
 
 	// Open uploaded file so that it's ready to be copied.
 	file, err := uploadedFile.Open()
@@ -140,14 +135,12 @@ func Episode(uploadedFile *multipart.FileHeader, episode *types.Episode, databas
 			// Add URL endpoint as instance.
 		}
 
-		log.Printf("SYS : Failed to open uploaded file. %v", err)
-		fmt.Printf("SYS : Failed to open uploaded file. %v\n", err)
+		log.Info(*functionId, fmt.Sprintf("Failed to open uploaded file. %v", err))
 
 		return &errorResponse
 	}
 
-	log.Print("SYS : Copying file contents to newly created file in storage system.")
-	fmt.Print("SYS : Copying file contents to newly created file in storage system.\n")
+	log.Info(*functionId, "Copying file contents to newly created file in storage system.")
 
 	// Copy the file to the destination and error handle.
 	if _, err := io.Copy(out, file); err != nil {
@@ -159,8 +152,7 @@ func Episode(uploadedFile *multipart.FileHeader, episode *types.Episode, databas
 			// Add URL endpoint as instance.
 		}
 
-		log.Printf("SYS : Failed to copy file contents to newly created file. %v", err)
-		fmt.Printf("SYS : Failed to copy file contents to newly created file. %v\n", err)
+		log.Info(*functionId, fmt.Sprintf("Failed to copy file contents to newly created file. %v", err))
 
 		return &errorResponse
 	}

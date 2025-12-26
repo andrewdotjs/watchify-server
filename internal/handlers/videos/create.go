@@ -5,9 +5,11 @@ import (
 	"net/http"
 	"path"
 
+	"github.com/andrewdotjs/watchify-server/internal/logger"
 	"github.com/andrewdotjs/watchify-server/internal/responses"
 	"github.com/andrewdotjs/watchify-server/internal/types"
 	"github.com/andrewdotjs/watchify-server/internal/upload"
+	"github.com/google/uuid"
 )
 
 // Allows the client to upload a video to the file system and store its information to
@@ -30,8 +32,10 @@ func Create(
   r *http.Request,
   database *sql.DB,
   appDirectory *string,
+  log *logger.Logger,
 ) {
 	var video types.Episode
+	var functionId string = uuid.NewString()
 
 	// Error handling if form data exceeds 1GB
 	if err := r.ParseMultipartForm(1 << 30); err != nil {
@@ -57,7 +61,7 @@ func Create(
 	video.ParentId = r.FormValue("show-id")
 
 	uploadDirectory := path.Join(*appDirectory, "storage", "videos")
-	upload.Episode(handler, &video, database, &uploadDirectory)
+	upload.Episode(handler, &video, database, &uploadDirectory, log, &functionId)
 
 	responses.Status{
 		Status: 201,

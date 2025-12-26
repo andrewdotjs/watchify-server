@@ -95,7 +95,7 @@ func Create(
 		Hidden:      (r.FormValue("hidden") == "true"),
 	}
 
-	movieId, _ := upload.Movie(uploadedVideo[0], &movieStruct, database, &uploadDirectory)
+	movieId, _ := upload.Movie(uploadedVideo[0], &movieStruct, database, &uploadDirectory, log, &functionId)
 
 	uploadDirectory = path.Join(*appDirectory, "storage", "covers")
 	cover := types.Cover{
@@ -108,6 +108,8 @@ func Create(
 		&cover,
 		database,
 		&uploadDirectory,
+		log,
+		&functionId,
 	); err != nil {
 		fmt.Printf("%v", err)
 	}

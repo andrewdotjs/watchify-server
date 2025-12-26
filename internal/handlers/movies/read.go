@@ -4,11 +4,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 
+	"github.com/andrewdotjs/watchify-server/internal/logger"
 	"github.com/andrewdotjs/watchify-server/internal/responses"
 	"github.com/andrewdotjs/watchify-server/internal/types"
+	"github.com/google/uuid"
 )
 
 // Gets and returns an array of series stored in the database.
@@ -29,18 +30,22 @@ func Read(
   w http.ResponseWriter,
   r *http.Request,
   database *sql.DB,
+  log *logger.Logger,
 ) {
 	var id string = r.PathValue("id")
 	var hidden bool = (r.URL.Query().Get("hidden") == "true")
 	var movieStruct types.Movie = types.Movie{}
+	var functionId string = uuid.NewString()
 
-	// Return all series if no ID.
+	// Return all movies if no ID.
 	if id == "" {
 		var movieArray []types.Movie
 
+		log.Info(functionId, "No ID given, attempting to return all movies")
+		log.Info(functionId, "Querying database for all movies, limit 30")
 		rows, err := database.Query(`
 			SELECT
-				id, title, description, file_extension, file_name, upload_date, last_modified
+				id, title, description, upload_date, last_modified
 			FROM
 				movies
 			WHERE
@@ -52,22 +57,23 @@ func Read(
 		)
 
 		if err != nil {
-			switch {
-			case errors.Is(err, sql.ErrNoRows):
+		  if !errors.Is(err, sql.ErrNoRows) {
+				log.Error(functionId, fmt.Sprintf("An unknown error occurred. %v", err))
 				responses.Status{
-					Status: 200,
-					Data:   nil,
-				}.ToClient(w)
-			default:
-				responses.Error{
 					Type:     "null",
 					Title:    "Unknown Error",
 					Status:   500,
 					Detail:   fmt.Sprintf("%v", err),
 					Instance: r.URL.Path,
 				}.ToClient(w)
+				return
 			}
 
+			log.Info(functionId, "No movies present in database")
+			responses.Status{
+				Status: 200,
+				Data:   nil,
+			}.ToClient(w)
 			return
 		}
 
@@ -79,13 +85,11 @@ func Read(
 				&movie.Id,
 				&movie.Title,
 				&movie.Description,
-				&movie.FileExtension,
-				&movie.FileName,
 				&movie.UploadDate,
 				&movie.LastModified,
 			); err != nil {
 				defer database.Close()
-				log.Fatalf("ERR : %v", err)
+				log.Error(functionId, fmt.Sprintf("An unknown error occurred. %v", err))
 			}
 
 			movie.Cover = map[string]any{
@@ -96,6 +100,7 @@ func Read(
 			movieArray = append(movieArray, movie)
 		}
 
+		log.Info(functionId, fmt.Sprintf("Returned %d movies", len(movieArray)))
 		responses.Status{
 			Status: 200,
 			Data:   movieArray,
@@ -103,14 +108,16 @@ func Read(
 		return
 	}
 
+	log.Info(functionId, fmt.Sprintf("ID %s given, attempting to return movie", id))
+
 	if err := database.QueryRow(
 		`
 		SELECT
-			id, title, description, hidden, upload_date, last_modified
+			id, title, description, hidden, file_extension, file_name, upload_date, last_modified
 		FROM
 			movies
 		WHERE
-			id=?
+			id = ?
 		`,
 		id,
 	).Scan(
@@ -118,11 +125,14 @@ func Read(
 		&movieStruct.Title,
 		&movieStruct.Description,
 		&movieStruct.Hidden,
+		&movieStruct.FileExtension,
+		&movieStruct.FileName,
 		&movieStruct.UploadDate,
 		&movieStruct.LastModified,
 	); err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
+		  log.Info(functionId, "No movie found with provided ID")
 			responses.Error{
 				Type:     "null",
 				Title:    "Data not found",
@@ -131,6 +141,7 @@ func Read(
 				Instance: r.URL.Path,
 			}.ToClient(w)
 		default:
+		  log.Error(functionId, fmt.Sprintf("An unknown error occurred. %v", err))
 			responses.Error{
 				Type:     "null",
 				Title:    "Unknown Error",
@@ -148,6 +159,7 @@ func Read(
 		"url":    ("/api/v1/movie/" + movieStruct.Id + "/cover"),
 	}
 
+	log.Info(functionId, fmt.Sprintf("Successfully returned information on movie with ID %s", id))
 	responses.Status{
 		Status: 200,
 		Data:   movieStruct,

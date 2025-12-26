@@ -48,7 +48,7 @@ func Read(
 	rows, err := db.Query(
 		`
    	SELECT
-			id, episode_number
+			id, episode_number, file_name, last_modified, upload_date
    	FROM
 			episodes
    	WHERE
@@ -84,6 +84,9 @@ func Read(
 		if err := rows.Scan(
 			&video.Id,
 			&video.EpisodeNumber,
+			&video.FileName,
+			&video.LastModified,
+			&video.UploadDate,
 		); err != nil {
 			switch {
 			default:

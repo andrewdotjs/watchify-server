@@ -4,13 +4,13 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
-	"log"
 	"mime/multipart"
 	"os"
 	"path"
 	"strings"
 	"time"
 
+	"github.com/andrewdotjs/watchify-server/internal/logger"
 	"github.com/andrewdotjs/watchify-server/internal/responses"
 	"github.com/andrewdotjs/watchify-server/internal/types"
 	"github.com/google/uuid"
@@ -19,20 +19,24 @@ import (
 // This takes a movie cover file and stores it in the file system and database.
 //
 // This function returns an error response that needs to be sent to the client.
-func Cover(uploadedFile *multipart.FileHeader, movieCover *types.Cover, database *sql.DB, uploadDirectory *string) *responses.Error {
+func Cover(
+  uploadedFile *multipart.FileHeader,
+  cover *types.Cover,
+  database *sql.DB,
+  uploadDirectory *string,
+  log *logger.Logger,
+  functionId *string,
+) *responses.Error {
 	var id string = uuid.NewString()
 	var uploadPath string
 
-	movieCover.Id = id
-	movieCover.FileExtension = strings.Split(uploadedFile.Filename, ".")[1]
-	movieCover.FileName = fmt.Sprintf("%s.%s", id, strings.Split(uploadedFile.Filename, ".")[1])
-	movieCover.UploadDate = time.Now().Format("2006-01-02 15:04:05")
+	cover.Id = id
+	cover.FileExtension = strings.Split(uploadedFile.Filename, ".")[1]
+	cover.FileName = fmt.Sprintf("%s.%s", id, strings.Split(uploadedFile.Filename, ".")[1])
+	cover.UploadDate = time.Now().Format("2006-01-02 15:04:05")
 
-	log.Print("SYS : Starting movie cover upload sequence.")
-	fmt.Print("SYS : Starting movie cover upload sequence.\n")
-
-	log.Print("SYS : Checking if upload directory is present.")
-	fmt.Print("SYS : Checking if upload directory is present.\n")
+	log.Info(*functionId, "Starting cover upload")
+	log.Info(*functionId, "Verifying upload directory")
 
 	// Create the upload directory if it doesn't exist
 	if _, err := os.Stat(*uploadDirectory); err != nil {
@@ -45,14 +49,11 @@ func Cover(uploadedFile *multipart.FileHeader, movieCover *types.Cover, database
 				// Add URL endpoint as instance.
 			}
 
-			log.Printf("SYS : An interesting error occurred while checking if upload directory exists. %v", err)
-			fmt.Printf("SYS : An interesting error occurred while checking if upload directory exists. %v\n", err)
-
+			log.Error(*functionId, fmt.Sprintf("An unknown error occurred during verification. %v", err))
 			return &errorResponse
 		}
 
-		log.Printf("SYS : Could not find upload directory at '%s'. Creating one.", *uploadDirectory)
-		fmt.Printf("SYS : Could not find upload directory at '%s'. Creating one.\n", *uploadDirectory)
+		log.Info(*functionId, fmt.Sprintf("Could not find upload directory at %s. Creating one", *uploadDirectory))
 
 		if err := os.Mkdir(*uploadDirectory, os.ModePerm); err != nil {
 			var errorResponse responses.Error = responses.Error{
@@ -63,29 +64,25 @@ func Cover(uploadedFile *multipart.FileHeader, movieCover *types.Cover, database
 				// Add URL endpoint as instance.
 			}
 
-			log.Print("SYS : Failed to create upload directory when needed.", err)
-			fmt.Print("SYS : Failed to create upload directory when needed.\n", err)
-
+			log.Error(*functionId, fmt.Sprintf("Failed to create upload directory when needed. %v", err))
 			return &errorResponse
 		}
 	}
 
-	log.Print("SYS : Executing insert statement into the database.")
-	fmt.Print("SYS : Executing insert statement into the database.\n")
+	log.Info(*functionId, "Attempting to insert cover information into the database")
 
 	// Insert the new cover's data into the series_covers table/
 	if _, err := database.Exec(`
 	  INSERT INTO
-			movie_covers
+			covers
 		VALUES
-		  (?, ?, ?, ?, ?, ?)
+		  (?, ?, ?, ?, ?)
 		`,
-		movieCover.Id,
-		movieCover.ParentId,
-		movieCover.UserId,
-		movieCover.FileExtension,
-		movieCover.FileName,
-		movieCover.UploadDate,
+		cover.Id,
+		cover.ParentId,
+		cover.FileExtension,
+		cover.FileName,
+		cover.UploadDate,
 	); err != nil {
 		var errorResponse responses.Error = responses.Error{
 			Type:   "null",
@@ -95,18 +92,15 @@ func Cover(uploadedFile *multipart.FileHeader, movieCover *types.Cover, database
 			// Add URL endpoint as instance.
 		}
 
-		log.Printf("SYS : Failed to execute SQL insert statement. %v", err)
-		fmt.Printf("SYS : Failed to execute SQL insert statement. %v\n", err)
-
+		log.Error(*functionId, fmt.Sprintf("Failed to upload cover information to the database. %v", err))
 		return &errorResponse
 	}
 
-	log.Print("SYS : Creating file in storage system.")
-	fmt.Print("SYS : Creating file in storage system.\n")
+	log.Info(*functionId, "Creating file in file system")
 
 	// Create file that will soon contain uploaded file contents.
-	fmt.Println(movieCover.FileName)
-	uploadPath = path.Join(*uploadDirectory, movieCover.FileName)
+	fmt.Println(cover.FileName)
+	uploadPath = path.Join(*uploadDirectory, cover.FileName)
 	out, err := os.Create(uploadPath)
 	if err != nil {
 		var errorResponse responses.Error = responses.Error{
@@ -117,16 +111,13 @@ func Cover(uploadedFile *multipart.FileHeader, movieCover *types.Cover, database
 			// Add URL endpoint as instance.
 		}
 
-		log.Printf("SYS : Failed to create file in storage system. %v", err)
-		fmt.Printf("SYS : Failed to create file in storage system. %v\n", err)
-
+		log.Error(*functionId, fmt.Sprintf("Failed to create file in file system. %v", err))
 		return &errorResponse
 	}
 
 	defer out.Close()
 
-	log.Print("SYS : Opening uploaded file.")
-	fmt.Print("SYS : Opening uploaded file.\n")
+	log.Info(*functionId, "Attempting to open uploaded file")
 
 	// Opens the file header to return the actual file.
 	file, err := uploadedFile.Open()
@@ -139,14 +130,11 @@ func Cover(uploadedFile *multipart.FileHeader, movieCover *types.Cover, database
 			// Add URL endpoint as instance.
 		}
 
-		log.Printf("SYS : Failed to open uploaded file. %v", err)
-		fmt.Printf("SYS : Failed to open uploaded file. %v\n", err)
-
+		log.Error(*functionId, fmt.Sprintf("Failed to open uploaded file. %v", err))
 		return &errorResponse
 	}
 
-	log.Print("SYS : Copying file contents to newly created file in storage system.")
-	fmt.Print("SYS : Copying file contents to newly created file in storage system.\n")
+	log.Info(*functionId, "Attempting to store file in file system.")
 
 	// Copy the file contents to newly created file.
 	if _, err := io.Copy(out, file); err != nil {
@@ -158,9 +146,7 @@ func Cover(uploadedFile *multipart.FileHeader, movieCover *types.Cover, database
 			// Add URL endpoint as instance.
 		}
 
-		log.Printf("SYS : Failed to copy file contents to newly created file in storage system. %v", err)
-		fmt.Printf("SYS : Failed to copy file contents to newly created file in storage system. %v\n", err)
-
+		log.Error(*functionId, fmt.Sprintf("Failed to store file in file system. %v", err))
 		return &errorResponse
 	}
 

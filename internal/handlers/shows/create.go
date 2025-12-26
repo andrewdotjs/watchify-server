@@ -114,7 +114,7 @@ func Create(
 	// Handle upload for every file that was passed in the form.
 	for index, uploadedFile := range uploadedVideos {
 		video := types.Episode{ParentId: show.Id}
-		upload.Episode(uploadedFile, &video, database, &uploadDirectory)
+		upload.Episode(uploadedFile, &video, database, &uploadDirectory, log, &functionId)
 		show.EpisodeCount = index + 1
 	}
 
@@ -126,6 +126,8 @@ func Create(
 		&cover,
 		database,
 		&uploadDirectory,
+		log,
+		&functionId,
 	)
 
 	if _, err := database.Exec(`

@@ -132,6 +132,35 @@ func Delete(
 		return
 	}
 
+	// Stage 2, find the cover that is being used by the to-be-deleted movie and delete it.
+	if err := database.QueryRow(`
+  	SELECT
+			file_name
+  	FROM
+      covers
+  	WHERE
+			parent_id=?
+    `,
+		id,
+	).Scan(&coverFileName); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		var response responses.Error
+
+		switch {
+		default:
+		  log.Error(functionId, fmt.Sprintf("Failed to give an accurate error response as it was not logged yet. Please log immediately. %v", err))
+			response = responses.Error{
+				Type:     "null",
+				Title:    "An unknown error has occurred.",
+				Status:   500,
+				Detail:   "Sorry, but this error hasn't been properly logged yet.",
+				Instance: r.URL.Path,
+			}
+		}
+
+		response.ToClient(w)
+		return
+	}
+
 	// Stage 2, delete the cover from the database.
 	if _, err := database.Exec(`
 	  DELETE FROM
@@ -159,7 +188,7 @@ func Delete(
 		return
 	}
 
-	// Stage 3, delete the cover from the storage.
+	// Stage 4, delete the cover from the storage.
 	if err := os.Remove(
 		path.Join(*appDirectory, "storage", "covers", coverFileName),
 	); err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -181,10 +210,10 @@ func Delete(
 		return
 	}
 
-	// Stage 4, delete the movie itself from the database.
+	// Stage 5, delete the movie itself from the database.
 	if _, err := database.Exec(`
   	DELETE FROM
-			movie
+			movies
   	WHERE
 			id=?
   	`,

@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/andrewdotjs/watchify-server/internal/functions"
+	"github.com/andrewdotjs/watchify-server/internal/responses"
 )
 
 // Returns a video stream to the client using the id.
@@ -29,27 +30,59 @@ func Read(
   appDirectory *string,
 ) {
 	var id string = r.PathValue("id")
-	var streamTypeQuery string = r.URL.Query().Get("type")
-	var streamType string = "shows"
-	var query string
-	var fileName string
+	var streamType string = "movies"
+	var fileName string = ""
 
-	if streamTypeQuery != "episodes" {
-		streamType = "movies"
+	if len(r.URL.Query().Get("type")) > 10 {
+  	responses.Status{
+  		Type:     "null",
+  		Title:    "Unknown Error",
+  		Status:   400,
+  		Detail:   "Value in type query too large, limit is 10",
+  		Instance: r.URL.Path,
+  	}.ToClient(w)
+  	return
 	}
 
-	query = "SELECT file_name FROM " + streamType + " WHERE id=?"
-	if err := database.QueryRow(query, id).Scan(&fileName); err != nil {
-		w.WriteHeader(500)
-		w.Write([]byte(fmt.Sprintf("%v", err)))
-		return
+	if r.URL.Query().Get("type") == "show" {
+    streamType = "episodes"
+	}
+
+	if err := database.QueryRow(
+	  fmt.Sprintf(
+  	  `
+  			SELECT
+  			  file_name
+  			FROM
+  			  %s
+  			WHERE
+  			  id=?
+  		`,
+      streamType,
+		),
+		id,
+	).Scan(&fileName); err != nil {
+	  responses.Status{
+  		Type:     "null",
+  		Title:    "Unknown Error",
+  		Status:   500,
+  		Detail:   fmt.Sprintf("%v", err),
+  		Instance: r.URL.Path,
+  	}.ToClient(w)
+  	return
 	}
 
 	filePath := path.Join(*appDirectory, "storage", "videos", fileName)
 	videoFile, err := os.Open(filePath)
 	if err != nil {
-		w.WriteHeader(500)
-		return
+	  responses.Status{
+  		Type:     "null",
+  		Title:    "Unknown Error",
+  		Status:   500,
+  		Detail:   fmt.Sprintf("%v", err),
+  		Instance: r.URL.Path,
+  	}.ToClient(w)
+  	return
 	}
 
 	defer videoFile.Close()
@@ -57,8 +90,14 @@ func Read(
 	// Get file information
 	fileInfo, err := videoFile.Stat()
 	if err != nil {
-		w.WriteHeader(500)
-		return
+	  responses.Status{
+  		Type:     "null",
+  		Title:    "Unknown Error",
+  		Status:   500,
+  		Detail:   fmt.Sprintf("%v", err),
+  		Instance: r.URL.Path,
+  	}.ToClient(w)
+  	return
 	}
 
 	w.Header().Set("Content-Type", "video/mp4")

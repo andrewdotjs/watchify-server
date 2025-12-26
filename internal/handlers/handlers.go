@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/andrewdotjs/watchify-server/internal/handlers/covers"
+	"github.com/andrewdotjs/watchify-server/internal/handlers/episodes"
 	"github.com/andrewdotjs/watchify-server/internal/handlers/movies"
 	"github.com/andrewdotjs/watchify-server/internal/handlers/shows"
 	"github.com/andrewdotjs/watchify-server/internal/handlers/stream"
@@ -42,7 +43,7 @@ func Videos(
 	}))
 
 	mux.Handle("POST /api/v1/videos", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		videos.Create(w, r, db, appDirectory)
+		videos.Create(w, r, db, appDirectory, log)
 	}))
 
 	mux.Handle("GET /api/v1/videos", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -58,9 +59,21 @@ func Shows(
   appDirectory *string,
   log *logger.Logger,
 ) {
- 	mux.Handle("GET /api/v1/shows/{id}/cover", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		covers.Read(w, r, db, appDirectory, &logger.Logger{})
+ 	mux.Handle("GET /api/v1/shows/{id}/episodes", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		episodes.Read(w, r, db, log)
 	}))
+
+  mux.Handle("GET /api/v1/shows/{id}/cover", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    covers.Read(w, r, db, appDirectory, log)
+  }))
+
+  mux.Handle("PUT /api/v1/shows/{id}/cover", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    covers.Update(w, r, db, appDirectory, log)
+  }))
+
+  mux.Handle("DELETE /api/v1/shows/{id}/cover", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    covers.Delete(w, r, db, appDirectory, log)
+  }))
 
 	mux.Handle("GET /api/v1/shows/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		shows.Read(w, r, db, log)
@@ -91,8 +104,20 @@ func Movies(
   appDirectory *string,
   log *logger.Logger,
 ) {
+  mux.Handle("GET /api/v1/movies/{id}/cover", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    covers.Read(w, r, db, appDirectory, log)
+  }))
+
+  mux.Handle("PUT /api/v1/movies/{id}/cover", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    covers.Update(w, r, db, appDirectory, log)
+  }))
+
+  mux.Handle("DELETE /api/v1/movies/{id}/cover", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    covers.Delete(w, r, db, appDirectory, log)
+  }))
+
  	mux.Handle("GET /api/v1/movies/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		movies.Read(w, r, db)
+		movies.Read(w, r, db, log)
 	}))
 
 	mux.Handle("PUT /api/v1/movies/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -108,40 +133,8 @@ func Movies(
 	}))
 
 	mux.Handle("GET /api/v1/movies", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		movies.Read(w, r, db)
-	}))
-}
-
-// Episodes
-
-func Episodes(
-  mux *http.ServeMux,
-  db *sql.DB,
-  appDirectory *string,
-  log *logger.Logger,
-) {
-	mux.Handle("GET /api/v1/shows/{id}/episodes", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		shows.Read(w, r, db, log)
-	}))
-}
-
-// Covers
-
-func Covers(
-  mux *http.ServeMux,
-  db *sql.DB,
-  appDirectory *string,
-  log *logger.Logger,
-) {
- 	mux.Handle("GET /api/v1/covers/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		covers.Read(w, r, db, appDirectory, log)
+		movies.Read(w, r, db, log)
 	}))
 
-	mux.Handle("PUT /api/v1/covers/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		covers.Update(w, r, db, appDirectory, log)
-	}))
 
-	mux.Handle("DELETE /api/v1/covers/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		covers.Delete(w, r, db, appDirectory, log)
-	}))
 }

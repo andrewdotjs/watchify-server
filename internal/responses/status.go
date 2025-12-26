@@ -7,9 +7,13 @@ import (
 )
 
 type Status struct {
-	Status  int    `json:"status"`
+  Status   int    `json:"status"`
 	Message string `json:"message,omitempty"`
-	Data    any    `json:"data"`
+	Data    any    `json:"data,omitempty"`
+	Type     string `json:"type,omitempty"`
+	Title    string `json:"title,omitempty"`
+	Detail   string `json:"detail,omitempty"`
+	Instance string `json:"instance,omitempty"`
 }
 
 // Takes a built Status struct and converts it into JSON-compatible bytes

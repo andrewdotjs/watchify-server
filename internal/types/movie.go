@@ -5,7 +5,7 @@ type Movie struct {
 
 	Title       string `json:"title,omitempty"`       // title of the movie
 	Description string `json:"description,omitempty"` // description of the movie
-	Hidden      bool   `json:"hidden"`
+	Hidden      bool   `json:"hidden,omitempty"`
 
 	Cover map[string]any `json:"cover,omitempty"`
 	// 	EXAMPLE:
@@ -15,8 +15,8 @@ type Movie struct {
 	//  }
 
 	// General data.
-	FileExtension string `json:"file_extension"`
-	FileName      string `json:"file_name"`
+	FileExtension string `json:"file_extension,omitempty"`
+	FileName      string `json:"file_name,omitempty"`
 	UploadDate    string `json:"upload_date,omitempty"`   // upload date of the movie.
 	LastModified  string `json:"last_modified,omitempty"` // last modified date of the movie.
 }

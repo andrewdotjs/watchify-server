@@ -39,8 +39,6 @@ func main() {
 	mux := http.NewServeMux()
 
 	handlers.Shows(mux, db, &appDirectory, &log)
-	handlers.Episodes(mux, db, &appDirectory, &log)
-	handlers.Covers(mux, db, &appDirectory, &log)
 	handlers.Movies(mux, db, &appDirectory, &log)
 	handlers.Stream(mux, db, &appDirectory, &log)
 	handlers.Videos(mux, db, &appDirectory, &log)
